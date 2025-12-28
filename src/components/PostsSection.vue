@@ -1,11 +1,13 @@
 <template>
   <section class="posts-section">
     <h3 class="section-title">最新文章</h3>
+    
     <div class="posts-grid">
       <div 
-        v-for="(post, index) in posts" 
-        :key="index" 
+        v-for="post in latestPosts" 
+        :key="post.id" 
         class="post-card"
+        @click="goToPost(post.id)"
       >
         <div class="post-header">
           <span class="post-category">{{ post.category }}</span>
@@ -13,53 +15,37 @@
         </div>
         <h4 class="post-title">{{ post.title }}</h4>
         <p class="post-excerpt">{{ post.excerpt }}</p>
+        <div class="post-tags">
+          <span v-for="tag in post.tags" :key="tag" class="tag">{{ tag }}</span>
+        </div>
         <a href="#" class="read-more">阅读更多</a>
       </div>
+    </div>
+
+    <div class="view-all-container">
+      <router-link to="/posts" class="view-all-btn">
+        <span class="btn-text">查看所有文章</span>
+        <span class="btn-arrow">→</span>
+      </router-link>
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import postsData from '../data/posts.json'
 
-const posts = ref([
-  {
-    category: '前端开发',
-    date: '2024-01-15',
-    title: 'Vue 3 组合式 API 深度解析',
-    excerpt: '探索 Vue 3 的组合式 API 如何改变我们编写组件的方式，以及如何在实际项目中应用。'
-  },
-  {
-    category: '人工智能',
-    date: '2024-01-12',
-    title: 'AI 辅助编程的未来',
-    excerpt: '人工智能正在改变软件开发的方式，让我们看看这对开发者意味着什么。'
-  },
-  {
-    category: '网络安全',
-    date: '2024-01-10',
-    title: '零信任架构实践指南',
-    excerpt: '深入了解零信任安全模型，以及如何在企业环境中实施。'
-  },
-  {
-    category: '云计算',
-    date: '2024-01-08',
-    title: 'Kubernetes 最佳实践',
-    excerpt: '在生产环境中部署和管理 Kubernetes 集群的关键技巧和经验。'
-  },
-  {
-    category: '区块链',
-    date: '2024-01-05',
-    title: 'Web3 开发入门',
-    excerpt: '从零开始学习去中心化应用开发，探索区块链技术的无限可能。'
-  },
-  {
-    category: '数据科学',
-    date: '2024-01-03',
-    title: '机器学习模型优化',
-    excerpt: '提升模型性能的关键技术，包括特征工程、模型调优和部署策略。'
-  }
-])
+const router = useRouter()
+const posts = ref(postsData)
+
+const latestPosts = computed(() => {
+  return posts.value.slice(0, 3)
+})
+
+function goToPost(id) {
+  router.push(`/post/${id}`)
+}
 </script>
 
 <style scoped>
@@ -106,10 +92,11 @@ const posts = ref([
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 30px;
+  margin-bottom: 40px;
 }
 
 .post-card {
-  background: rgba(0, 255, 0, 0.05);
+  background: rgba(0, 0, 0, 0.95);
   border: 1px solid #00ff00;
   padding: 30px;
   transition: all 0.3s ease;
@@ -117,6 +104,7 @@ const posts = ref([
   overflow: hidden;
   border-radius: 8px;
   transform: skewX(-2deg);
+  cursor: pointer;
 }
 
 .post-card::before {
@@ -216,6 +204,52 @@ const posts = ref([
   font-size: 0.95rem;
 }
 
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.tag {
+  background-color: transparent;
+  color: #00ff00;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  border: 2px solid #00ff00;
+  transition: all 0.3s ease;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.tag::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.tag:hover::before {
+  left: 100%;
+}
+
+.tag:hover {
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 20px #00ff00;
+  transform: translateY(-2px) scale(1.05);
+}
+
 .read-more {
   color: #00ffff;
   text-decoration: none;
@@ -247,6 +281,65 @@ const posts = ref([
   color: #00ff00;
   text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
   transform: skewX(2deg) translateX(5px);
+}
+
+.view-all-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.view-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 40px;
+  background-color: transparent;
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  transform: skewX(-3deg);
+}
+
+.view-all-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.view-all-btn:hover::before {
+  left: 100%;
+}
+
+.view-all-btn:hover {
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ff00;
+  transform: skewX(-3deg) scale(1.1);
+}
+
+.btn-arrow {
+  transition: transform 0.3s ease;
+  font-size: 1.2rem;
+}
+
+.view-all-btn:hover .btn-arrow {
+  transform: translateX(5px);
 }
 
 @media (max-width: 768px) {

@@ -3,6 +3,7 @@
     "id": "vue3-composition-api",
     "title": "Vue 3 组合式 API 深度解析",
     "category": "前端开发",
+    "tags": ["Vue3", "JavaScript", "前端框架", "响应式"],
     "date": "2024-01-15",
     "excerpt": "探索 Vue 3 的组合式 API 如何改变我们编写组件的方式，以及如何在实际项目中应用。",
     "content": "# Vue 3 组合式 API 深度解析\n\nVue 3 的组合式 API（Composition API）是一个全新的编程范式，它允许我们更灵活地组织和复用代码。\n\n## 什么是组合式 API\n\n组合式 API 是一组基于函数的 API，让我们可以更灵活地组合逻辑。\n\n### setup() 函数\n\nsetup() 是组合式 API 的入口点，它在组件创建之前执行。\n\n```javascript\nimport { ref, computed } from 'vue'\n\nexport default {\n  setup() {\n    const count = ref(0)\n    const doubled = computed(() => count.value * 2)\n    \n    return {\n      count,\n      doubled\n    }\n  }\n}\n```\n\n## 响应式系统\n\nVue 3 使用 Proxy 实现了更强大的响应式系统。\n\n### ref 和 reactive\n\n- ref：用于基本类型的响应式数据\n- reactive：用于对象类型的响应式数据\n\n```javascript\nimport { ref, reactive } from 'vue'\n\nconst count = ref(0)\nconst state = reactive({\n  name: 'Vue',\n  version: 3\n})\n```\n\n## 组合式函数\n\n组合式函数让我们可以轻松复用逻辑。\n\n```javascript\nfunction useMouse() {\n  const x = ref(0)\n  const y = ref(0)\n  \n  function update(event) {\n    x.value = event.pageX\n    y.value = event.pageY\n  }\n  \n  onMounted(() => window.addEventListener('mousemove', update))\n  onUnmounted(() => window.removeEventListener('mousemove', update))\n  \n  return { x, y }\n}\n```\n\n## 总结\n\n组合式 API 为 Vue 3 带来了更好的代码组织和复用能力，是现代 Vue 开发的推荐方式。"
@@ -11,6 +12,7 @@
     "id": "ai-assisted-programming",
     "title": "AI 辅助编程的未来",
     "category": "人工智能",
+    "tags": ["AI", "编程", "生产力", "自动化"],
     "date": "2024-01-12",
     "excerpt": "人工智能正在改变软件开发的方式，让我们看看这对开发者意味着什么。",
     "content": "# AI 辅助编程的未来\n\n人工智能技术正在深刻改变软件开发的方式，从代码生成到智能调试，AI 正在成为开发者的得力助手。\n\n## AI 编程助手的发展\n\n### 早期阶段\n\n最初的 AI 编程工具主要提供简单的代码补全功能。\n\n### 当前阶段\n\n现代 AI 编程助手能够：\n- 生成完整函数\n- 解释复杂代码\n- 查找和修复 bug\n- 优化代码性能\n\n## 主流 AI 编程工具\n\n### GitHub Copilot\n\nGitHub Copilot 是目前最流行的 AI 编程助手之一，它基于 OpenAI 的 GPT 模型。\n\n### ChatGPT\n\nChatGPT 可以作为编程问答工具，帮助解决各种编程问题。\n\n## AI 对开发者的影响\n\n### 积极影响\n\n- 提高开发效率\n- 降低学习门槛\n- 减少重复劳动\n\n### 挑战\n\n- 需要验证 AI 生成的代码\n- 可能产生依赖\n- 代码质量参差不齐\n\n## 未来展望\n\nAI 辅助编程将继续发展，未来可能会出现：\n- 更智能的代码生成\n- 自动化测试生成\n- 智能架构建议\n\n开发者需要学会与 AI 协作，将其作为工具而非替代品。"
@@ -19,6 +21,7 @@
     "id": "zero-trust-architecture",
     "title": "零信任架构实践指南",
     "category": "网络安全",
+    "tags": ["安全", "架构", "企业安全", "访问控制"],
     "date": "2024-01-10",
     "excerpt": "深入了解零信任安全模型，以及如何在企业环境中实施。",
     "content": "# 零信任架构实践指南\n\n零信任（Zero Trust）是一种安全模型，它假设网络内部和外部都存在威胁，因此需要对所有访问进行验证。\n\n## 零信任的核心原则\n\n### 1. 永不信任，始终验证\n\n无论用户或设备位于何处，都必须进行身份验证和授权。\n\n### 2. 最小权限访问\n\n只授予用户完成工作所需的最小权限。\n\n### 3. 微分段\n\n将网络划分为小的、可管理的段，限制横向移动。\n\n## 零信任架构组件\n\n### 身份和访问管理（IAM）\n\n- 多因素认证（MFA）\n- 单点登录（SSO）\n- 基于角色的访问控制（RBAC）\n\n### 网络安全\n\n- 软件定义边界（SDP）\n- 零信任网络访问（ZTNA）\n- 微分段\n\n### 设备安全\n\n- 设备健康检查\n- 端点检测和响应（EDR）\n- 移动设备管理（MDM）\n\n## 实施步骤\n\n### 1. 评估现状\n\n了解当前的安全架构和风险点。\n\n### 2. 制定策略\n\n明确零信任实施的目标和优先级。\n\n### 3. 部署技术\n\n逐步部署零信任技术组件。\n\n### 4. 持续监控\n\n建立监控和响应机制。\n\n## 最佳实践\n\n- 从小处着手，逐步扩展\n- 优先保护关键资产\n- 建立清晰的策略和流程\n- 持续评估和改进"
@@ -27,6 +30,7 @@
     "id": "kubernetes-best-practices",
     "title": "Kubernetes 最佳实践",
     "category": "云计算",
+    "tags": ["Kubernetes", "容器", "云原生", "DevOps"],
     "date": "2024-01-08",
     "excerpt": "在生产环境中部署和管理 Kubernetes 集群的关键技巧和经验。",
     "content": "# Kubernetes 最佳实践\n\nKubernetes 已经成为容器编排的事实标准，在生产环境中使用 K8s 需要遵循一系列最佳实践。\n\n## 集群规划\n\n### 节点规划\n\n- 分离控制平面和工作节点\n- 使用多可用区部署\n- 考虑自动扩缩容\n\n### 资源规划\n\n- 设置资源请求和限制\n- 使用资源配额\n- 规划存储需求\n\n## 部署策略\n\n### 滚动更新\n\n```yaml\napiVersion: apps/v1\nkind: Deployment\nspec:\n  strategy:\n    type: RollingUpdate\n    rollingUpdate:\n      maxSurge: 1\n      maxUnavailable: 0\n```\n\n### 蓝绿部署\n\n同时维护两个版本，通过切换流量实现零停机部署。\n\n### 金丝雀发布\n\n逐步将流量引导到新版本，降低风险。\n\n## 安全实践\n\n### Pod 安全\n\n- 使用非 root 用户运行容器\n- 限制 Pod 特权\n- 使用安全上下文\n\n### 网络策略\n\n```yaml\napiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: deny-all\nspec:\n  podSelector: {}\n  policyTypes:\n  - Ingress\n  - Egress\n```\n\n### RBAC\n\n实施基于角色的访问控制，遵循最小权限原则。\n\n## 监控和日志\n\n### Prometheus\n\n- 收集指标数据\n- 设置告警规则\n- 可视化监控\n\n### 日志收集\n\n- 使用集中式日志系统\n- 结构化日志格式\n- 日志保留策略\n\n## 高可用\n\n- 多副本部署\n- 健康检查\n- 自动恢复\n- 灾难恢复计划"
@@ -35,16 +39,108 @@
     "id": "web3-development",
     "title": "Web3 开发入门",
     "category": "区块链",
+    "tags": ["Web3", "区块链", "智能合约", "去中心化"],
     "date": "2024-01-05",
     "excerpt": "从零开始学习去中心化应用开发，探索区块链技术的无限可能。",
-    "content": "# Web3 开发入门\n\nWeb3 代表了互联网的下一个阶段，基于区块链技术构建去中心化应用（DApp）。\n\n## 什么是 Web3\n\nWeb3 是基于区块链的去中心化互联网，具有以下特点：\n- 去中心化\n- 用户拥有数据\n- 代币经济\n- 互操作性\n\n## 核心技术\n\n### 区块链\n\n- Ethereum\n- Polygon\n- Solana\n\n### 智能合约\n\n使用 Solidity 编写智能合约：\n\n```solidity\npragma solidity ^0.8.0;\n\ncontract SimpleStorage {\n    uint256 private storedData;\n\n    function set(uint256 x) public {\n        storedData = x;\n    }\n\n    function get() public view returns (uint256) {\n        return storedData;\n    }\n}\n```\n\n### 开发框架\n\n- Hardhat\n- Truffle\n- Foundry\n\n## 前端集成\n\n### Web3.js\n\n```javascript\nimport Web3 from 'web3';\n\nconst web3 = new Web3(window.ethereum);\n\nawait window.ethereum.request({ method: 'eth_requestAccounts' });\n```\n\n### Ethers.js\n\n```javascript\nimport { ethers } from 'ethers';\n\nconst provider = new ethers.providers.Web3Provider(window.ethereum);\nconst signer = provider.getSigner();\n```\n\n## 钱包集成\n\n### MetaMask\n\n最流行的 Web3 钱包，支持多种区块链网络。\n\n### WalletConnect\n\n提供跨平台的钱包连接解决方案。\n\n## 开发工具\n\n- Remix IDE\n- OpenZeppelin\n- IPFS\n- The Graph\n\n## 学习路径\n\n1. 学习区块链基础知识\n2. 掌握 Solidity 编程\n3. 理解智能合约安全\n4. 学习前端集成\n5. 实践 DApp 开发"
+    "content": "# Web3 开发入门\n\nWeb3 代表了互联网的下一个阶段，基于区块链技术构建去中心化应用（DApp）。\n\n## 什么是 Web3\n\nWeb3 是基于区块链的去中心化互联网，具有以下特点：\n- 去中心化\n- 用户拥有数据\n- 代币经济\n- 互操作性\n\n## 核心技术\n\n### 区块链\n\n- Ethereum\n- Polygon\n- Solana\n\n### 智能合约\n\n使用 Solidity 编写智能合约：\n\n```solidity\npragma solidity ^0.8.0;\n\ncontract SimpleStorage {\n    uint256 private storedData;\n\n    function set(uint256 x) public {\n        storedData = x;\n    }\n    function get() public view returns (uint256) {\n        return storedData;\n    }\n}\n```\n\n### 开发框架\n\n- Hardhat\n- Truffle\n- Foundry\n\n## 前端集成\n\n### Web3.js\n\n```javascript\nimport Web3 from 'web3';\nconst web3 = new Web3(window.ethereum);\nawait window.ethereum.request({ method: 'eth_requestAccounts' });\n```\n\n### Ethers.js\n\n```javascript\nimport { ethers } from 'ethers';\nconst provider = new ethers.providers.Web3Provider(window.ethereum);\nconst signer = provider.getSigner();\n```\n\n## 钱包集成\n\n### MetaMask\n\n最流行的 Web3 钱包，支持多种区块链网络。\n\n### WalletConnect\n\n提供跨平台的钱包连接解决方案。\n\n## 开发工具\n\n- Remix IDE\n- OpenZeppelin\n- IPFS\n- The Graph\n\n## 学习路径\n\n1. 学习区块链基础知识\n2. 掌握 Solidity 编程\n3. 理解智能合约安全\n4. 学习前端集成\n5. 实践 DApp 开发"
   },
   {
     "id": "ml-model-optimization",
     "title": "机器学习模型优化",
     "category": "数据科学",
+    "tags": ["机器学习", "数据科学", "优化", "算法"],
     "date": "2024-01-03",
     "excerpt": "提升模型性能的关键技术，包括特征工程、模型调优和部署策略。",
-    "content": "# 机器学习模型优化\n\n模型优化是机器学习项目的关键环节，直接影响模型的性能和实用性。\n\n## 特征工程\n\n### 特征选择\n\n- 移除无关特征\n- 处理缺失值\n- 特征标准化\n\n### 特征变换\n\n```python\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.decomposition import PCA\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\n\npca = PCA(n_components=0.95)\nX_pca = pca.fit_transform(X_scaled)\n```\n\n### 特征创建\n\n- 多项式特征\n- 交互特征\n- 时间序列特征\n\n## 模型调优\n\n### 超参数优化\n\n#### 网格搜索\n\n```python\nfrom sklearn.model_selection import GridSearchCV\n\nparam_grid = {\n    'n_estimators': [100, 200, 300],\n    'max_depth': [10, 20, 30]\n}\n\ngrid_search = GridSearchCV(model, param_grid, cv=5)\ngrid_search.fit(X_train, y_train)\n```\n\n#### 随机搜索\n\n```python\nfrom sklearn.model_selection import RandomizedSearchCV\n\nrandom_search = RandomizedSearchCV(\n    model, param_distributions, n_iter=50, cv=5\n)\nrandom_search.fit(X_train, y_train)\n```\n\n#### 贝叶斯优化\n\n使用更智能的搜索策略。\n\n### 交叉验证\n\n- K-Fold 交叉验证\n- 分层 K-Fold\n- 时间序列交叉验证\n\n## 模型集成\n\n### Bagging\n\n- 随机森林\n- Extra Trees\n\n### Boosting\n\n- XGBoost\n- LightGBM\n- CatBoost\n\n### Stacking\n\n结合多个模型的预测结果。\n\n## 模型部署\n\n### 模型序列化\n\n```python\nimport joblib\n\njoblib.dump(model, 'model.pkl')\nloaded_model = joblib.load('model.pkl')\n```\n\n### API 部署\n\n使用 FastAPI 或 Flask 创建模型 API。\n\n### 监控和维护\n\n- 性能监控\n- 数据漂移检测\n- 模型重训练\n\n## 性能评估\n\n### 分类指标\n\n- 准确率\n- 精确率\n- 召回率\n- F1 分数\n- AUC-ROC\n\n### 回归指标\n\n- MSE\n- RMSE\n- MAE\n- R²"
+    "content": "# 机器学习模型优化\n\n模型优化是机器学习项目的关键环节，直接影响模型的性能和实用性。\n\n## 特征工程\n\n### 特征选择\n\n- 移除无关特征\n- 处理缺失值\n- 特征标准化\n\n### 特征变换\n\n```python\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.decomposition import PCA\n\nscaler = StandardScaler()\nX_scaled = scaler.fit_transform(X)\n\npca = PCA(n_components=0.95)\nX_pca = pca.fit_transform(X_scaled)\n```\n\n### 特征创建\n\n- 多项式特征\n- 交互特征\n- 时间序列特征\n\n## 模型调优\n\n### 超参数优化\n\n#### 网格搜索\n\n```python\nfrom sklearn.model_selection import GridSearchCV\n\nparam_grid = {\n    'n_estimators': [100, 200, 300],\n    'max_depth': [10, 20, 30]\n}\n\ngrid_search = GridSearchCV(model, param_grid, cv=5)\ngrid_search.fit(X_train, y_train)\n```\n\n#### 随机搜索\n\n```python\nfrom sklearn.model_selection import RandomizedSearchCV\n\nrandom_search = RandomizedSearchCV(\n    model, param_distributions, n_iter=50, cv=5\n)\nrandom_search.fit(X_train, y_train)\n```\n\n#### 贝叶斯优化\n\n使用更智能的搜索策略。\n\n### 交叉验证\n\n- K-Fold 交叉验证\n- 分层 K-Fold\n- 时间序列交叉验证\n\n## 模型集成\n\n### Bagging\n\n- 随机森林\n- Extra Trees\n\n### Boosting\n\n- XGBoost\n- LightGBM\n- CatBoost\n\n### Stacking\n\n结合多个模型的预测结果。\n\n## 模型部署\n\n### 模型序列化\n\n```python\nimport joblib\njoblib.dump(model, 'model.pkl')\nloaded_model = joblib.load('model.pkl')\n```\n\n### API 部署\n\n使用 FastAPI 或 Flask 创建模型 API。\n\n### 监控和维护\n\n- 性能监控\n- 数据漂移检测\n- 模型重训练\n\n## 性能评估\n\n### 分类指标\n\n- 准确率\n- 精确率\n- 召回率\n- F1 分数\n- AUC-ROC\n\n### 回归指标\n\n- MSE\n- RMSE\n- MAE\n- R²"
+  },
+  {
+    "id": "defi-yield-farming",
+    "title": "DeFi 收益农场策略解析",
+    "category": "Web3",
+    "tags": ["DeFi", "收益", "流动性", "质押"],
+    "date": "2024-01-20",
+    "excerpt": "深入探讨去中心化金融中的收益农场机制，学习如何安全地获取被动收入。",
+    "content": "# DeFi 收益农场策略解析\n\n收益农场（Yield Farming）是 DeFi 领域最流行的被动收入策略之一。\n\n## 什么是收益农场\n\n收益农场是指通过向 DeFi 协议提供流动性来赚取奖励的行为。\n\n## 主要策略\n\n### 流动性挖矿\n\n向 AMM 提供流动性并赚取交易手续费和代币奖励。\n\n### 质押（Staking）\n\n将代币锁定在协议中以获得奖励。\n\n### 借贷套利\n\n利用不同平台之间的利率差异进行套利。\n\n## 风险管理\n\n- 无常损失风险\n- 智能合约风险\n- 代币价格波动\n\n## 工具推荐\n\n- Yearn Finance\n- Aave\n- Curve Finance\n- Uniswap"
+  },
+  {
+    "id": "nft-marketplace-development",
+    "title": "NFT 市场开发实战",
+    "category": "Web3",
+    "tags": ["NFT", "智能合约", "市场", "ERC-721"],
+    "date": "2024-01-18",
+    "excerpt": "从零构建一个完整的 NFT 市场，涵盖智能合约、前端集成和用户体验优化。",
+    "content": "# NFT 市场开发实战\n\nNFT 市场是 Web3 生态中最重要的应用之一。\n\n## 技术栈\n\n### 智能合约\n\n- ERC-721 标准\n- ERC-1155 标准\n- OpenZeppelin 库\n\n### 前端技术\n\n- React/Vue.js\n- Ethers.js/Web3.js\n- IPFS 存储\n\n## 核心功能\n\n### NFT 铸造\n\n```solidity\nfunction mintNFT(string memory tokenURI) public returns (uint256) {\n    _tokenIds.increment();\n    uint256 newItemId = _tokenIds.current();\n    _safeMint(msg.sender, newItemId);\n    _setTokenURI(newItemId, tokenURI);\n    return newItemId;\n}\n```\n\n### 市场交易\n\n- 挂单出售\n- 竞价拍卖\n- 即时购买\n\n## 最佳实践\n\n- 使用 IPFS 存储元数据\n- 实现版税机制\n- 优化 Gas 费用\n- 提供良好的用户体验"
+  },
+  {
+    "id": "dao-governance-guide",
+    "title": "DAO 治理机制详解",
+    "category": "Web3",
+    "tags": ["DAO", "治理", "去中心化", "投票"],
+    "date": "2024-01-16",
+    "excerpt": "了解去中心化自治组织的运作模式，掌握 DAO 治理的核心概念和实践方法。",
+    "content": "# DAO 治理机制详解\n\nDAO（去中心化自治组织）代表了组织管理的新范式。\n\n## 治理代币\n\n治理代币赋予持有者投票权和提案权。\n\n## 投票机制\n\n### 时间加权投票\n\n基于持有代币的时间长度计算投票权重。\n\n### 委托投票\n\n将投票权委托给其他地址。\n\n## 提案流程\n\n1. 提交提案\n2. 讨论期\n3. 投票期\n4. 执行期\n\n## 知名 DAO 案例\n\n- MakerDAO\n- Uniswap DAO\n- Aave DAO\n- Compound DAO\n\n## 治理工具\n\n- Snapshot\n- Tally\n- Discourse"
+  },
+  {
+    "id": "serverless-architecture-patterns",
+    "title": "Serverless 架构设计模式",
+    "category": "Dev",
+    "tags": ["Serverless", "架构", "云原生", "无服务器"],
+    "date": "2024-01-22",
+    "excerpt": "探索无服务器架构的最佳实践，学习如何构建高可用、低成本的应用系统。",
+    "content": "# Serverless 架构设计模式\n\nServerless 架构正在改变我们构建和部署应用的方式。\n\n## 核心优势\n\n- 按需付费\n- 自动扩缩容\n- 降低运维成本\n\n## 设计模式\n\n### 事件驱动架构\n\n使用事件触发函数执行。\n\n### 微服务架构\n\n将应用拆分为小型、独立的服务。\n\n### API 网关模式\n\n统一管理 API 路由和认证。\n\n## 主流平台\n\n- AWS Lambda\n- Vercel Functions\n- Netlify Functions\n- Cloudflare Workers\n\n## 最佳实践\n\n- 保持函数轻量\n- 优化冷启动时间\n- 合理设置超时时间\n- 监控和日志管理"
+  },
+  {
+    "id": "typescript-advanced-patterns",
+    "title": "TypeScript 高级模式实战",
+    "category": "Dev",
+    "tags": ["TypeScript", "类型系统", "泛型", "设计模式"],
+    "date": "2024-01-25",
+    "excerpt": "深入掌握 TypeScript 的高级类型系统，提升代码质量和开发效率。",
+    "content": "# TypeScript 高级模式实战\n\nTypeScript 的类型系统提供了强大的抽象能力。\n\n## 高级类型\n\n### 泛型约束\n\n```typescript\ninterface Lengthwise {\n  length: number;\n}\n\nfunction loggingIdentity<T extends Lengthwise>(arg: T): T {\n  console.log(arg.length);\n  return arg;\n}\n```\n\n### 条件类型\n\n```typescript\ntype NonNullable<T> = T extends null | undefined ? never : T;\n```\n\n### 映射类型\n\n```typescript\ntype Readonly<T> = {\n  readonly [P in keyof T]: T[P];\n};\n```\n\n## 设计模式\n\n- 工厂模式\n- 策略模式\n- 观察者模式\n\n## 实用技巧\n\n- 使用 Utility Types\n- 类型守卫\n- 类型推断\n- 类型断言"
+  },
+  {
+    "id": "docker-containerization-guide",
+    "title": "Docker 容器化完全指南",
+    "category": "Dev",
+    "tags": ["Docker", "容器", "部署", "DevOps"],
+    "date": "2024-01-28",
+    "excerpt": "从基础到进阶，全面掌握 Docker 容器化技术，实现应用的标准化部署。",
+    "content": "# Docker 容器化完全指南\n\nDocker 已经成为现代应用部署的标准工具。\n\n## 核心概念\n\n- 镜像（Image）\n- 容器（Container）\n- 仓库（Registry）\n\n## Dockerfile 最佳实践\n\n```dockerfile\nFROM node:18-alpine\nWORKDIR /app\nCOPY package*.json ./\nRUN npm ci --only=production\nCOPY . .\nEXPOSE 3000\nCMD [\"node\", \"server.js\"]\n```\n\n## 多阶段构建\n\n```dockerfile\nFROM node:18 AS builder\nWORKDIR /app\nCOPY . .\nRUN npm run build\n\nFROM node:18-alpine\nWORKDIR /app\nCOPY --from=builder /app/dist ./dist\nCMD [\"node\", \"dist/index.js\"]\n```\n\n## Docker Compose\n\n```yaml\nversion: '3.8'\nservices:\n  web:\n    build: .\n    ports:\n      - \"3000:3000\"\n  db:\n    image: postgres:14\n    environment:\n      POSTGRES_PASSWORD: secret\n```\n\n## 优化技巧\n\n- 使用多阶段构建减小镜像大小\n- 合理使用 .dockerignore\n- 选择合适的基础镜像\n- 利用构建缓存"
+  },
+  {
+    "id": "remote-work-productivity",
+    "title": "远程工作生产力提升指南",
+    "category": "Life",
+    "tags": ["远程工作", "生产力", "效率", "工具"],
+    "date": "2024-01-30",
+    "excerpt": "在远程办公环境中保持高效工作的实用策略和工具推荐。",
+    "content": "# 远程工作生产力提升指南\n\n远程工作已经成为新常态，如何保持高效是关键。\n\n## 工作环境\n\n### 专用工作空间\n\n创建一个专门的工作区域，与生活空间分离。\n\n### 人体工学设置\n\n- 调整显示器高度\n- 选择舒适的椅子\n- 保持良好的照明\n\n## 时间管理\n\n### 番茄工作法\n\n25 分钟专注工作，5 分钟休息。\n\n### 时间块规划\n\n将一天划分为不同的工作块。\n\n## 工具推荐\n\n### 协作工具\n\n- Notion\n- Slack\n- Zoom\n- Figma\n\n### 生产力工具\n\n- Todoist\n- RescueTime\n- Forest\n\n## 心理健康\n\n- 定期休息\n- 保持社交联系\n- 设定工作边界\n- 培养兴趣爱好"
+  },
+  {
+    "id": "minimalist-living",
+    "title": "极简生活实践指南",
+    "category": "Life",
+    "tags": ["极简主义", "生活方式", "断舍离", "生活质量"],
+    "date": "2024-02-01",
+    "excerpt": "通过减少物质负担，获得更多精神自由和生活质量的提升。",
+    "content": "# 极简生活实践指南\n\n极简主义不是关于拥有更少，而是关于拥有更有意义的东西。\n\n## 核心原则\n\n### 少即是多\n\n专注于真正重要的事物。\n\n### 有意识的选择\n\n每个物品都应该有明确的目的。\n\n## 实践步骤\n\n### 清理物品\n\n- 从一个房间开始\n- 问自己：过去一年用过吗？\n- 捐赠或出售不需要的物品\n\n### 数字清理\n\n- 删除不必要的应用\n- 取消不关注的订阅\n- 整理数字文件\n\n## 心态转变\n\n- 体验重于拥有\n- 质量重于数量\n- 感恩现有的一切\n\n## 长期收益\n\n- 减少决策疲劳\n- 节省时间和金钱\n- 提高专注力\n- 增强内心平静"
+  },
+  {
+    "id": "crypto-arbitrage-strategies",
+    "title": "加密货币套利策略全解析",
+    "category": "Arbitrage",
+    "tags": ["套利", "加密货币", "交易", "收益"],
+    "date": "2024-02-03",
+    "excerpt": "学习如何利用不同交易所之间的价格差异获取无风险收益。",
+    "content": "# 加密货币套利策略全解析\n\n套利是利用价格差异获取收益的经典策略。\n\n## 套利类型\n\n### 空间套利\n\n在不同交易所之间买卖同一资产。\n\n### 时间套利\n\n利用期货和现货之间的价差。\n\n### 统计套利\n\n基于历史价格关系进行交易。\n\n## 执行步骤\n\n1. 监控多个交易所价格\n2. 计算套利机会和利润\n3. 快速执行交易\n4. 管理资金流转\n\n## 风险控制\n\n- 交易手续费\n- 转账时间\n- 流动性风险\n- 汇率波动\n\n## 工具和平台\n\n- 交易所 API\n- 套利机器人\n- 价格监控工具\n\n## 注意事项\n\n- 了解当地法规\n- 选择可靠交易所\n- 控制仓位大小\n- 保持资金安全"
+  },
+  {
+    "id": "defi-flash-loans",
+    "title": "DeFi 闪电贷款套利",
+    "category": "Arbitrage",
+    "tags": ["闪电贷", "DeFi", "无抵押", "套利"],
+    "date": "2024-02-05",
+    "excerpt": "深入理解闪电贷款机制，学习如何利用无抵押贷款进行套利交易。",
+    "content": "# DeFi 闪电贷款套利\n\n闪电贷款（Flash Loans）是 DeFi 领域最具创新性的金融工具之一。\n\n## 什么是闪电贷款\n\n闪电贷款允许用户在单笔交易中借入大量资金，无需抵押，只要在同一交易中归还。\n\n## 工作原理\n\n1. 借款\n2. 执行套利策略\n3. 归还贷款和利息\n4. 如果失败，交易回滚\n\n## 套利策略\n\n### DEX 价差套利\n\n利用不同去中心化交易所之间的价格差异。\n\n### 清算套利\n\n清算抵押不足的借贷头寸。\n\n## 风险管理\n\n- 智能合约风险\n- Gas 费用风险\n- 滑点风险\n\n## 工具推荐\n\n- Aave\n- dYdX\n- Uniswap"
   }
 ]

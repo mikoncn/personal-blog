@@ -10,10 +10,10 @@
       </span>
     </h1>
     <nav class="nav">
-      <a href="#" class="nav-link">首页</a>
-      <a href="#" class="nav-link">文章</a>
-      <a href="#" class="nav-link">项目</a>
-      <a href="#" class="nav-link">关于</a>
+      <router-link to="/" class="nav-link">首页</router-link>
+      <router-link to="/posts" class="nav-link">文章</router-link>
+      <router-link to="/posts" class="nav-link">项目</router-link>
+      <router-link to="/posts" class="nav-link">关于</router-link>
     </nav>
   </header>
 </template>
@@ -307,6 +307,13 @@
   overflow: hidden;
   text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
   transform: skewX(-3deg);
+  display: inline-block;
+}
+
+.nav-link.router-link-active {
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 20px #00ff00;
 }
 
 .nav-link::before {
