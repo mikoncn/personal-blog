@@ -130,25 +130,6 @@
   transform: skewX(-5deg);
 }
 
-.cyberpunk-logo .electricity {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, 
-    transparent, 
-    #FCEE0A, 
-    #FF0040, 
-    #00D9FF, 
-    transparent
-  );
-  animation: electric 2s ease-in-out infinite;
-  opacity: 0;
-  pointer-events: none;
-  transform: skewX(-5deg);
-}
-
 @keyframes flicker {
   0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
     opacity: 1;
@@ -224,28 +205,6 @@
   }
   100% {
     transform: translateY(100%) skewX(-5deg);
-  }
-}
-
-@keyframes electric {
-  0%, 100% {
-    opacity: 0;
-    transform: scaleX(0) skewX(-5deg);
-  }
-  10% {
-    opacity: 1;
-    transform: scaleX(1) skewX(-5deg);
-  }
-  15% {
-    opacity: 0;
-    transform: scaleX(1.2) skewX(-5deg);
-  }
-  20% {
-    opacity: 1;
-    transform: scaleX(0.9) skewX(-5deg);
-  }
-  25% {
-    opacity: 0;
   }
 }
 

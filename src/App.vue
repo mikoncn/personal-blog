@@ -47,23 +47,4 @@ body::before {
   margin: 0 auto;
   padding: 20px;
 }
-
-.container::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 1px;
-  height: 100%;
-  background: linear-gradient(180deg, 
-    transparent,
-    rgba(0, 255, 0, 0.1),
-    rgba(0, 255, 0, 0.3),
-    rgba(0, 255, 0, 0.1),
-    transparent
-  );
-  pointer-events: none;
-  z-index: -1;
-}
 </style>

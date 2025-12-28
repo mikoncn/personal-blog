@@ -18,6 +18,7 @@
   background: rgba(0, 255, 0, 0.05);
   animation: pulse 2s infinite;
   position: relative;
+  border-radius: 20px;
 }
 
 @keyframes pulse {
