@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import PostDetail from '../views/PostDetail.vue'
 import AllPosts from '../views/AllPosts.vue'
+import makePost from '../views/makePost.vue'
 
 // 定义路由配置数组
 const routes = [
@@ -25,6 +26,12 @@ const routes = [
     name: 'PostDetail',
     component: PostDetail,
     props: true // 将路由参数作为组件props传递
+  },
+  // 文章发布页路由
+  {
+    path: '/make-post',
+    name: 'makePost',
+    component: makePost
   }
 ]
 

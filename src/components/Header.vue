@@ -12,6 +12,7 @@
     <nav class="nav">
       <router-link to="/" class="nav-link">首页</router-link>
       <router-link to="/posts" class="nav-link">文章</router-link>
+      <router-link to="/make-post" class="nav-link">发布</router-link>
       <router-link to="/posts" class="nav-link">项目</router-link>
       <router-link to="/posts" class="nav-link">关于</router-link>
     </nav>
