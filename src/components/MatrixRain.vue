@@ -12,7 +12,7 @@
       :style="{
         left: `${icon.x}px`,
         top: `${icon.y}px`,
-        filter: icon.glowIntensity ? `drop-shadow(0 0 ${icon.glowIntensity * 20}px ${icon.displayGlowColor})` : 'none'
+        filter: icon.glowIntensity ? `brightness(${1 + icon.glowIntensity * 0.3}) drop-shadow(0 0 30px ${icon.displayGlowColor}) drop-shadow(0 0 60px ${icon.displayGlowColor}) drop-shadow(0 0 90px ${icon.displayGlowColor})` : 'none'
       }"
     />
   </div>
@@ -222,7 +222,7 @@ function initMatrix() {
   // 四个图标随机分布在Matrix中
   const iconNames = [
     { name: 'khorne', color: '#ff0000' },
-    { name: 'nurgle', color: '#00ff00' },
+    { name: 'nurgle', color: '#4fff00' },
     { name: 'slaanesh', color: '#ff00ff' },
     { name: 'tzeentch', color: '#0088ff' }
   ]
@@ -475,12 +475,12 @@ function draw() {
     
     let glowIntensity = 0
     if (isHovered) {
-      glowIntensity = 1
+      glowIntensity = 3
     }
     
     const baseOpacity = 0.2
     const maxOpacity = 1.0
-    icon.opacity = (baseOpacity + glowIntensity * (maxOpacity - baseOpacity)) * fadeFactor
+    icon.opacity = (baseOpacity + glowIntensity * (maxOpacity - baseOpacity) / 3) * fadeFactor
     icon.glowIntensity = glowIntensity
     
     if (isHovered) {

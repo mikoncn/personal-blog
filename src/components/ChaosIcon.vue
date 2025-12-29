@@ -57,5 +57,6 @@ const iconStyle = computed(() => {
   vertical-align: middle;
   margin-right: 0.3em;
   flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 </style>
