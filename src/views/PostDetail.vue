@@ -3,8 +3,10 @@
 import { ref, onMounted, computed } from 'vue'
 // 导入Vue Router用于页面导航
 import { useRouter } from 'vue-router'
-// 导入文章数据
-import postsData from '../data/posts.json'
+// 导入数据服务
+import { getPostById } from '../services/postService'
+// 导入日期格式化工具
+import { formatDate } from '../utils/dateFormatter'
 // 导入页面组件
 import Header from '../components/Header.vue'
 import Footer from '../components/Footer.vue'
@@ -18,6 +20,8 @@ const props = defineProps(['id'])
 const post = ref(null)
 // 加载状态标记
 const loading = ref(true)
+// 错误信息
+const error = ref(null)
 
 // 计算属性：将Markdown格式的内容转换为HTML格式
 // 支持标题（#、##、###）、粗体（**）、代码（`）和换行符
@@ -33,18 +37,26 @@ const formattedContent = computed(() => {
 })
 
 // 组件挂载时根据ID查找文章
-onMounted(() => {
-  const foundPost = postsData.find(p => p.id === props.id)
-  if (foundPost) {
-    post.value = foundPost
+onMounted(async () => {
+  console.log('[DEBUG PostDetail] 组件挂载，文章ID:', props.id)
+  try {
+    console.log('[DEBUG PostDetail] 开始获取文章详情...')
+    const foundPost = await getPostById(props.id)
+    if (foundPost) {
+      post.value = foundPost
+      console.log('[DEBUG PostDetail] 文章加载成功，标题:', foundPost.title)
+    } else {
+      error.value = '文章未找到'
+      console.error('[ERROR PostDetail] 文章未找到，ID:', props.id)
+    }
+  } catch (err) {
+    error.value = err.message
+    console.error('[ERROR PostDetail] 加载文章失败:', err)
+  } finally {
+    loading.value = false
+    console.log('[DEBUG PostDetail] 加载状态结束，loading = false')
   }
-  loading.value = false
 })
-
-// 返回首页
-function goBack() {
-  router.push('/')
-}
 </script>
 
 <template>
@@ -58,18 +70,26 @@ function goBack() {
         <div class="loading-text">LOADING...</div>
       </div>
       
+      <!-- 错误状态显示 -->
+      <div v-else-if="error" class="error">
+        <div class="error-text">{{ error }}</div>
+      </div>
+      
       <!-- 文章内容显示 -->
       <div v-else-if="post" class="post-content">
         <!-- 返回按钮 -->
-        <button class="back-button" @click="goBack">
-          <span class="back-icon">←</span>
-          <span class="back-text">返回首页</span>
-        </button>
+        <router-link to="/" class="back-button">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5" stroke="#00ff00" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 19L5 12L12 5" stroke="#00ff00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="back-button-text">返回主页</span>
+        </router-link>
         
         <!-- 文章头部信息：分类和日期 -->
         <div class="post-header">
           <span class="post-category">{{ post.category }}</span>
-          <span class="post-date">{{ post.date }}</span>
+          <span class="post-date">{{ formatDate(post.created_at) }}</span>
         </div>
         
         <!-- 文章标题 -->
@@ -154,44 +174,72 @@ function goBack() {
 
 /* 返回按钮样式：赛博朋克风格 */
 .back-button {
-  background: rgba(0, 255, 0, 0.1);
-  border: 1px solid #00ff00;
-  color: #00ff00;
-  padding: 12px 24px;
-  cursor: pointer;
-  font-family: 'Orbitron', 'Rajdhani', sans-serif;
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all 0.3s ease;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 12px 30px;
+  background-color: #0a0a0a;
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  text-decoration: none;
+  font-size: 1rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  transform: skewX(-3deg);
   margin-bottom: 30px;
-  border-radius: 4px;
+}
+
+/* 返回按钮扫描效果 */
+.back-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+/* 悬停时扫描线移动 */
+.back-button:hover::before {
+  left: 100%;
 }
 
 /* 返回按钮悬停效果：增强发光和左移 */
 .back-button:hover {
-  background: rgba(0, 255, 0, 0.2);
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-  transform: translateX(-5px);
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ff00;
+  transform: skewX(-3deg) scale(1.05);
 }
 
-/* 返回图标动画 */
-.back-icon {
-  font-size: 1.2rem;
-  transition: transform 0.3s ease;
+/* 返回按钮文字 */
+.back-button-text {
+  font-weight: 600;
 }
 
-/* 悬停时图标左移 */
-.back-button:hover .back-icon {
+/* 返回按钮 SVG 图标 */
+.back-button svg {
+  width: 20px;
+  height: 20px;
+  transition: all 0.3s ease;
+}
+
+/* 悬停时图标向左移动并变黑 */
+.back-button:hover svg {
   transform: translateX(-3px);
 }
 
-/* 返回文字样式 */
-.back-text {
-  font-weight: 600;
+.back-button:hover svg path {
+  stroke: #0a0a0a;
 }
 
 /* 文章头部信息容器 */
@@ -331,6 +379,18 @@ function goBack() {
 
 /* 响应式设计：移动端适配 */
 @media (max-width: 768px) {
+  /* 返回按钮移动端样式 */
+  .back-button {
+    padding: 8px 20px;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+  }
+
+  .back-button svg {
+    width: 16px;
+    height: 16px;
+  }
+
   /* 缩小文章标题 */
   .post-title {
     font-size: 1.8rem;
@@ -354,5 +414,20 @@ function goBack() {
   .post-body :deep(h3) {
     font-size: 1.1rem;
   }
+}
+
+.error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.error-text {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 1.5rem;
+  color: #ff0000;
+  text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+  text-align: center;
 }
 </style>

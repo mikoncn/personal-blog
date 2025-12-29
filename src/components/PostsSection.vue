@@ -2,7 +2,15 @@
   <section class="posts-section">
     <h3 class="section-title">最新文章</h3>
     
-    <div class="posts-grid">
+    <div v-if="loading" class="loading">
+      <div class="loading-text">LOADING...</div>
+    </div>
+    
+    <div v-else-if="error" class="error">
+      <div class="error-text">加载失败: {{ error }}</div>
+    </div>
+    
+    <div v-else class="posts-grid">
       <div 
         v-for="post in latestPosts" 
         :key="post.id" 
@@ -11,10 +19,10 @@
       >
         <div class="post-header">
           <span class="post-category">{{ post.category }}</span>
-          <span class="post-date">{{ post.date }}</span>
+          <span class="post-date">{{ formatDate(post.created_at) }}</span>
         </div>
         <h4 class="post-title">{{ post.title }}</h4>
-        <p class="post-excerpt">{{ post.excerpt }}</p>
+        <p class="post-excerpt">{{ post.summary }}</p>
         <div class="post-tags">
           <span v-for="tag in post.tags" :key="tag" class="tag">{{ tag }}</span>
         </div>
@@ -32,20 +40,39 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import postsData from '../data/posts.json'
+import { getAllPosts } from '../services/postService'
+import { formatDate } from '../utils/dateFormatter'
 
 const router = useRouter()
-const posts = ref(postsData)
+const posts = ref([])
+const loading = ref(true)
+const error = ref(null)
 
 const latestPosts = computed(() => {
   return posts.value.slice(0, 3)
 })
 
 function goToPost(id) {
+  console.log('[DEBUG PostsSection] 点击文章卡片，准备跳转到文章详情，ID:', id)
   router.push(`/post/${id}`)
 }
+
+onMounted(async () => {
+  console.log('[DEBUG PostsSection] 组件挂载，开始加载文章...')
+  try {
+    posts.value = await getAllPosts()
+    console.log('[DEBUG PostsSection] 文章加载完成，共', posts.value.length, '篇')
+    console.log('[DEBUG PostsSection] 最新文章:', latestPosts.value.map(p => ({ id: p.id, title: p.title })))
+  } catch (err) {
+    error.value = err.message
+    console.error('[ERROR PostsSection] 加载文章失败:', err)
+  } finally {
+    loading.value = false
+    console.log('[DEBUG PostsSection] 加载状态结束，loading = false')
+  }
+})
 </script>
 
 <style scoped>
@@ -356,5 +383,50 @@ function goToPost(id) {
   .posts-grid {
     grid-template-columns: 1fr;
   }
+
+  .view-all-btn {
+    padding: 10px 25px;
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.loading-text {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 1.5rem;
+  color: #00ff00;
+  text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.error-text {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 1.2rem;
+  color: #ff0000;
+  text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+  text-align: center;
 }
 </style>

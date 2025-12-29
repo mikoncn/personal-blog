@@ -1,5 +1,16 @@
 <template>
   <div class="all-posts-page">
+    <!-- 返回主页按钮 -->
+    <div class="back-button-container">
+      <router-link to="/" class="back-button">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5" stroke="#00ff00" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12 19L5 12L12 5" stroke="#00ff00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="back-button-text">返回主页</span>
+      </router-link>
+    </div>
+
     <!-- 页面标题区域 -->
     <section class="page-header">
       <h1 class="page-title">
@@ -46,7 +57,15 @@
       </div>
 
       <!-- 文章卡片网格 -->
-      <div class="posts-grid">
+      <div v-if="loading" class="loading">
+        <div class="loading-text">LOADING...</div>
+      </div>
+      
+      <div v-else-if="error" class="error">
+        <div class="error-text">加载失败: {{ error }}</div>
+      </div>
+      
+      <div v-else class="posts-grid">
         <div 
           v-for="post in paginatedPosts" 
           :key="post.id" 
@@ -56,12 +75,12 @@
           <!-- 文章头部：分类和日期 -->
           <div class="post-header">
             <span class="post-category">{{ post.category }}</span>
-            <span class="post-date">{{ post.date }}</span>
+            <span class="post-date">{{ formatDate(post.created_at) }}</span>
           </div>
           <!-- 文章标题 -->
           <h4 class="post-title">{{ post.title }}</h4>
           <!-- 文章摘要 -->
-          <p class="post-excerpt">{{ post.excerpt }}</p>
+          <p class="post-excerpt">{{ post.summary }}</p>
           <!-- 文章标签 -->
           <div class="post-tags">
             <span v-for="tag in post.tags" :key="tag" class="tag">{{ tag }}</span>
@@ -111,16 +130,17 @@
 
 <script setup>
 // 导入Vue核心功能：响应式引用和计算属性
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 // 导入Vue Router用于页面导航
 import { useRouter } from 'vue-router'
-// 导入文章数据
-import postsData from '../data/posts.json'
+// 导入数据服务
+import { getAllPosts, getAllCategories } from '../services/postService'
+import { formatDate } from '../utils/dateFormatter'
 
 // 初始化路由实例
 const router = useRouter()
 // 存储所有文章数据
-const posts = ref(postsData)
+const posts = ref([])
 // 搜索输入框的关键词
 const searchQuery = ref('')
 // 实际用于搜索的关键词
@@ -131,9 +151,13 @@ const selectedCategory = ref('All')
 const currentPage = ref(1)
 // 每页显示的文章数量
 const itemsPerPage = 9
+// 加载状态
+const loading = ref(true)
+// 错误信息
+const error = ref(null)
 
 // 所有可用的分类选项
-const categories = ['All', 'Web3', 'Dev', 'Life', 'Arbitrage']
+const categories = ref(['All'])
 
 // 计算属性：根据搜索关键词和分类筛选文章
 const filteredPosts = computed(() => {
@@ -149,7 +173,7 @@ const filteredPosts = computed(() => {
     const query = activeSearchQuery.value.toLowerCase()
     result = result.filter(post => 
       post.title.toLowerCase().includes(query) ||
-      post.excerpt.toLowerCase().includes(query) ||
+      post.summary.toLowerCase().includes(query) ||
       post.category.toLowerCase().includes(query) ||
       (post.tags && post.tags.some(tag => tag.toLowerCase().includes(query)))
     )
@@ -172,23 +196,29 @@ const paginatedPosts = computed(() => {
 
 // 监听分类变化，重置到第一页
 watch(selectedCategory, () => {
+  console.log('[DEBUG AllPosts] 分类切换:', selectedCategory.value)
   currentPage.value = 1
+  console.log('[DEBUG AllPosts] 页码重置为 1')
 })
 
 // 执行搜索
 function performSearch() {
+  console.log('[DEBUG AllPosts] 执行搜索，关键词:', searchQuery.value)
   activeSearchQuery.value = searchQuery.value
   currentPage.value = 1
+  console.log('[DEBUG AllPosts] 搜索后筛选结果数:', filteredPosts.value.length)
 }
 
 // 跳转到文章详情页
 function goToPost(id) {
+  console.log('[DEBUG AllPosts] 点击文章卡片，准备跳转到文章详情，ID:', id)
   router.push(`/post/${id}`)
 }
 
 // 切换到指定页码
 function goToPage(page) {
   if (page >= 1 && page <= totalPages.value) {
+    console.log('[DEBUG AllPosts] 跳转到第', page, '页')
     currentPage.value = page
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -197,6 +227,7 @@ function goToPage(page) {
 // 上一页
 function prevPage() {
   if (currentPage.value > 1) {
+    console.log('[DEBUG AllPosts] 点击上一页，当前页:', currentPage.value)
     goToPage(currentPage.value - 1)
   }
 }
@@ -204,9 +235,32 @@ function prevPage() {
 // 下一页
 function nextPage() {
   if (currentPage.value < totalPages.value) {
+    console.log('[DEBUG AllPosts] 点击下一页，当前页:', currentPage.value)
     goToPage(currentPage.value + 1)
   }
 }
+
+// 加载数据
+onMounted(async () => {
+  console.log('[DEBUG AllPosts] 组件挂载，开始加载数据...')
+  try {
+    console.log('[DEBUG AllPosts] 并行请求文章列表和分类列表...')
+    const [postsData, categoriesData] = await Promise.all([
+      getAllPosts(),
+      getAllCategories()
+    ])
+    posts.value = postsData
+    categories.value = ['All', ...categoriesData]
+    console.log('[DEBUG AllPosts] 数据加载完成，文章数:', posts.value.length, '分类数:', categories.value.length)
+    console.log('[DEBUG AllPosts] 分类列表:', categories.value)
+  } catch (err) {
+    error.value = err.message
+    console.error('[ERROR AllPosts] 加载数据失败:', err)
+  } finally {
+    loading.value = false
+    console.log('[DEBUG AllPosts] 加载状态结束，loading = false')
+  }
+})
 </script>
 
 <style scoped>
@@ -289,10 +343,88 @@ function nextPage() {
   text-shadow: 0 0 10px #00ffff;
 }
 
+/* 返回按钮容器 */
+.back-button-container {
+  max-width: 1400px;
+  margin: 0 auto 20px auto;
+  padding: 0 20px;
+}
+
+/* 返回按钮样式 */
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 30px;
+  background-color: #0a0a0a;
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  text-decoration: none;
+  font-size: 1rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  transform: skewX(-3deg);
+  white-space: nowrap;
+}
+
+/* 返回按钮扫描效果 */
+.back-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+/* 悬停时扫描线移动 */
+.back-button:hover::before {
+  left: 100%;
+}
+
+/* 返回按钮悬停效果 */
+.back-button:hover {
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ff00;
+  transform: skewX(-3deg) scale(1.05);
+}
+
+/* 返回按钮文字 */
+.back-button-text {
+  font-weight: 600;
+}
+
+/* 返回按钮 SVG 图标 */
+.back-button svg {
+  width: 20px;
+  height: 20px;
+  transition: all 0.3s ease;
+}
+
+/* 悬停时图标向左移动并变黑 */
+.back-button:hover svg {
+  transform: translateX(-3px);
+}
+
+.back-button:hover svg path {
+  stroke: #0a0a0a;
+}
+
 /* 文章列表区域 */
 .posts-section {
   max-width: 1400px;
   margin: 0 auto;
+  padding: 0 20px;
 }
 
 /* 筛选器容器：搜索框和分类标签 */
@@ -421,6 +553,13 @@ function nextPage() {
 .search-btn svg {
   width: 20px;
   height: 20px;
+  transition: all 0.3s ease;
+}
+
+/* 悬停时搜索图标变黑 */
+.search-btn:hover svg circle,
+.search-btn:hover svg line {
+  stroke: #0a0a0a;
 }
 
 /* 分类标签容器 */
@@ -714,6 +853,34 @@ function nextPage() {
 
 /* 响应式设计：移动端适配 */
 @media (max-width: 768px) {
+  /* 所有文章页面主容器移动端样式 */
+  .all-posts-page {
+    padding: 20px 15px;
+  }
+
+  /* 返回按钮容器移动端样式 */
+  .back-button-container {
+    padding: 0;
+  }
+
+  /* 返回按钮移动端样式 */
+  .back-button {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    justify-content: center;
+  }
+
+  .back-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* 文章列表区域移动端样式 */
+  .posts-section {
+    padding: 0;
+  }
+
   /* 缩小页面标题 */
   .page-title {
     font-size: 2rem;
@@ -739,9 +906,9 @@ function nextPage() {
 
   /* 移动端分类标签按钮 */
   .tab-button {
-    padding: 12px 30px;
-    font-size: 1rem;
-    letter-spacing: 2px;
+    padding: 8px 20px;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
   }
 
   /* 移动端搜索框 */
@@ -751,10 +918,14 @@ function nextPage() {
 
   .search-input {
     width: 100%;
+    padding: 10px 15px;
+    font-size: 0.9rem;
   }
 
   .search-btn {
     width: 100%;
+    padding: 10px 20px;
+    font-size: 0.9rem;
     justify-content: center;
   }
 }
@@ -889,8 +1060,8 @@ function nextPage() {
 @media (max-width: 768px) {
   .pagination {
     flex-direction: column;
-    gap: 15px;
-    padding: 20px;
+    gap: 10px;
+    padding: 15px;
   }
 
   .pagination-numbers {
@@ -899,14 +1070,53 @@ function nextPage() {
   }
 
   .pagination-number {
-    width: 50px;
-    height: 50px;
-    font-size: 1rem;
+    width: 45px;
+    height: 45px;
+    font-size: 0.9rem;
   }
 
   .pagination-btn {
-    padding: 12px 30px;
-    font-size: 1rem;
+    padding: 10px 25px;
+    font-size: 0.9rem;
   }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.loading-text {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 1.5rem;
+  color: #00ff00;
+  text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.error-text {
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 1.2rem;
+  color: #ff0000;
+  text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
+  text-align: center;
 }
 </style>

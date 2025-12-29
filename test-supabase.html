@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase 连接测试</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #0a0a0a;
+      color: #00ff00;
+    }
+    .log {
+      margin: 10px 0;
+      padding: 10px;
+      border-left: 3px solid #00ff00;
+      background: rgba(0, 255, 0, 0.1);
+    }
+    .error {
+      border-left-color: #ff0000;
+      color: #ff0000;
+      background: rgba(255, 0, 0, 0.1);
+    }
+    .success {
+      border-left-color: #00ff00;
+      color: #00ff00;
+    }
+    .info {
+      border-left-color: #00ffff;
+      color: #00ffff;
+    }
+  </style>
+</head>
+<body>
+  <h1>Supabase 连接测试</h1>
+  <div id="logs"></div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+    const SUPABASE_URL = 'https://twjantrzbprehxcmlszj.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3amFudHJ6YnByZWh4Y21sc3pqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5ODk5OTIsImV4cCI6MjA4MjU2NTk5Mn0.NOaB1vUOj4P_CmGRc1a6tIYy3MDBy-U4b_THH3foz48'
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+    function log(message, type = 'info') {
+      const logsDiv = document.getElementById('logs')
+      const logDiv = document.createElement('div')
+      logDiv.className = `log ${type}`
+      logDiv.textContent = message
+      logsDiv.appendChild(logDiv)
+      console.log(message)
+    }
+
+    async function runTests() {
+      log('=== 开始 Supabase 连接测试 ===', 'info')
+      log(`URL: ${SUPABASE_URL}`, 'info')
+      log(`Key: ${SUPABASE_ANON_KEY.substring(0, 20)}...`, 'info')
+
+      try {
+        // 测试 1: 检查连接
+        log('\n测试 1: 检查 Supabase 连接...', 'info')
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError) {
+          log(`连接失败: ${sessionError.message}`, 'error')
+        } else {
+          log('✅ 连接成功！', 'success')
+        }
+
+        // 测试 2: 查询 posts 表
+        log('\n测试 2: 查询 posts 表...', 'info')
+        const { data, error } = await supabase
+          .from('posts')
+          .select('*')
+          .limit(1)
+
+        if (error) {
+          log(`查询失败: ${error.message}`, 'error')
+          log(`错误代码: ${error.code}`, 'error')
+          log(`错误提示: ${error.hint || '无'}`, 'error')
+          log(`错误详情: ${error.details || '无'}`, 'error')
+        } else {
+          log(`✅ 查询成功！返回 ${data.length} 条记录`, 'success')
+          if (data.length > 0) {
+            log(`第一条记录: ${JSON.stringify(data[0], null, 2)}`, 'success')
+          }
+        }
+
+        // 测试 3: 尝试获取所有文章
+        log('\n测试 3: 获取所有文章...', 'info')
+        const { data: allPosts, error: allError } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false })
+
+        if (allError) {
+          log(`获取所有文章失败: ${allError.message}`, 'error')
+        } else {
+          log(`✅ 成功获取 ${allPosts.length} 篇文章`, 'success')
+          allPosts.forEach((post, index) => {
+            log(`  ${index + 1}. ${post.title} (ID: ${post.id})`, 'success')
+          })
+        }
+
+        // 测试 4: 检查表结构（如果可能）
+        log('\n测试 4: 检查表结构...', 'info')
+        const { data: columns, error: columnsError } = await supabase
+          .rpc('get_table_columns', { table_name: 'posts' })
+
+        if (columnsError) {
+          log(`无法获取表结构: ${columnsError.message}`, 'info')
+          log('这可能是因为 RPC 函数不存在或权限不足', 'info')
+        } else {
+          log(`✅ 表结构: ${JSON.stringify(columns, null, 2)}`, 'success')
+        }
+
+      } catch (err) {
+        log(`测试过程中发生异常: ${err.message}`, 'error')
+        log(`异常堆栈: ${err.stack}`, 'error')
+      }
+
+      log('\n=== 测试完成 ===', 'info')
+    }
+
+    runTests()
+  </script>
+</body>
+</html>

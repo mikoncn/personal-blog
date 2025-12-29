@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supabase 完整诊断</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', monospace;
+      padding: 20px;
+      background: #0a0a0a;
+      color: #00ff00;
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { 
+      color: #00ff00; 
+      text-shadow: 0 0 10px #00ff00;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #00ff00;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #00ffff;
+      margin: 30px 0 15px 0;
+      font-size: 1.2rem;
+    }
+    .log {
+      margin: 10px 0;
+      padding: 15px;
+      border-left: 4px solid #00ff00;
+      background: rgba(0, 255, 0, 0.05);
+      border-radius: 4px;
+    }
+    .error {
+      border-left-color: #ff0000;
+      color: #ff0000;
+      background: rgba(255, 0, 0, 0.1);
+    }
+    .success {
+      border-left-color: #00ff00;
+      color: #00ff00;
+    }
+    .warning {
+      border-left-color: #ffff00;
+      color: #ffff00;
+      background: rgba(255, 255, 0, 0.1);
+    }
+    .info {
+      border-left-color: #00ffff;
+      color: #00ffff;
+    }
+    pre {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+    }
+    .test-result {
+      margin: 10px 0;
+      padding: 10px;
+      background: rgba(0, 255, 0, 0.1);
+      border: 1px solid #00ff00;
+      border-radius: 4px;
+    }
+    .test-result.failed {
+      background: rgba(255, 0, 0, 0.1);
+      border-color: #ff0000;
+    }
+    button {
+      background: #00ff00;
+      color: #0a0a0a;
+      border: none;
+      padding: 10px 20px;
+      margin: 10px 5px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: bold;
+      border-radius: 4px;
+      transition: all 0.3s;
+    }
+    button:hover {
+      background: #00ffff;
+      box-shadow: 0 0 20px #00ffff;
+    }
+    .summary {
+      margin-top: 30px;
+      padding: 20px;
+      background: rgba(0, 255, 255, 0.1);
+      border: 2px solid #00ffff;
+      border-radius: 8px;
+    }
+    .summary h3 {
+      color: #00ffff;
+      margin-bottom: 15px;
+    }
+    .solution {
+      margin: 10px 0;
+      padding: 10px;
+      background: rgba(255, 255, 0, 0.1);
+      border-left: 4px solid #ffff00;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Supabase 完整诊断工具</h1>
+    
+    <div class="info log">
+      <strong>使用说明：</strong><br>
+      1. 点击"开始诊断"按钮<br>
+      2. 查看所有测试结果<br>
+      3. 根据诊断结果采取相应措施
+    </div>
+
+    <button onclick="runDiagnostics()">🚀 开始诊断</button>
+    <button onclick="clearLogs()">🗑️ 清除日志</button>
+
+    <div id="logs"></div>
+
+    <div id="summary" class="summary" style="display: none;">
+      <h3>📋 诊断总结</h3>
+      <div id="summaryContent"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+    const SUPABASE_URL = 'https://twjantrzbprehxcmlszj.supabase.co'
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3amFudHJ6YnByZWh4Y21sc3pqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY5ODk5OTIsImV4cCI6MjA4MjU2NTk5Mn0.NOaB1vUOj4P_CmGRc1a6tIYy3MDBy-U4b_THH3foz48'
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    const testResults = []
+
+    function log(message, type = 'info', details = null) {
+      const logsDiv = document.getElementById('logs')
+      const logDiv = document.createElement('div')
+      logDiv.className = `log ${type}`
+      
+      let content = message
+      if (details) {
+        content += `\n<pre>${JSON.stringify(details, null, 2)}</pre>`
+      }
+      logDiv.innerHTML = content
+      logsDiv.appendChild(logDiv)
+      console.log(`[${type.toUpperCase()}]`, message, details || '')
+    }
+
+    function recordTest(testName, passed, details = '') {
+      testResults.push({ name: testName, passed, details })
+    }
+
+    function clearLogs() {
+      document.getElementById('logs').innerHTML = ''
+      document.getElementById('summary').style.display = 'none'
+      testResults.length = 0
+    }
+
+    async function runDiagnostics() {
+      clearLogs()
+      log('=== 开始 Supabase 完整诊断 ===', 'info')
+      log(`URL: ${SUPABASE_URL}`, 'info')
+      log(`Key: ${SUPABASE_ANON_KEY.substring(0, 30)}...`, 'info')
+
+      try {
+        // 测试 1: 基本连接
+        log('\n📡 测试 1: 基本连接测试', 'info')
+        try {
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+          if (sessionError) {
+            log(`❌ 连接失败: ${sessionError.message}`, 'error', sessionError)
+            recordTest('基本连接', false, sessionError.message)
+          } else {
+            log('✅ 连接成功！', 'success')
+            recordTest('基本连接', true)
+          }
+        } catch (err) {
+          log(`❌ 连接异常: ${err.message}`, 'error', err)
+          recordTest('基本连接', false, err.message)
+        }
+
+        // 测试 2: 尝试不同的表名
+        log('\n📋 测试 2: 尝试不同的表名', 'info')
+        const tableNames = ['posts', 'Posts', 'POSTS', 'post', 'Post', 'POST']
+        let foundTable = null
+        
+        for (const tableName of tableNames) {
+          try {
+            const { data, error } = await supabase
+              .from(tableName)
+              .select('*')
+              .limit(1)
+            
+            if (!error) {
+              log(`✅ 找到表: "${tableName}"`, 'success')
+              log(`   返回数据: ${data.length} 条记录`, 'success')
+              if (data.length > 0) {
+                log(`   示例数据:`, 'success', data[0])
+              }
+              foundTable = tableName
+              recordTest(`表名 ${tableName}`, true)
+              break
+            } else {
+              log(`❌ 表 "${tableName}" 不存在或无权限: ${error.message}`, 'warning')
+              recordTest(`表名 ${tableName}`, false, error.message)
+            }
+          } catch (err) {
+            log(`❌ 表 "${tableName}" 查询异常: ${err.message}`, 'error')
+            recordTest(`表名 ${tableName}`, false, err.message)
+          }
+        }
+
+        // 测试 3: 获取所有数据
+        if (foundTable) {
+          log(`\n📊 测试 3: 从表 "${foundTable}" 获取所有数据`, 'info')
+          try {
+            const { data: allData, error: allError } = await supabase
+              .from(foundTable)
+              .select('*')
+              .order('created_at', { ascending: false })
+
+            if (allError) {
+              log(`❌ 获取数据失败: ${allError.message}`, 'error', allError)
+              recordTest('获取所有数据', false, allError.message)
+            } else {
+              log(`✅ 成功获取 ${allData.length} 条记录`, 'success')
+              allData.forEach((item, index) => {
+                log(`   ${index + 1}. ${item.title || item.name || '无标题'} (ID: ${item.id})`, 'success')
+              })
+              recordTest('获取所有数据', true, `共 ${allData.length} 条`)
+            }
+          } catch (err) {
+            log(`❌ 获取数据异常: ${err.message}`, 'error', err)
+            recordTest('获取所有数据', false, err.message)
+          }
+        }
+
+        // 测试 4: 检查 RLS 策略
+        log('\n🔒 测试 4: 检查 RLS 策略', 'info')
+        log('⚠️  注意：此测试需要 Supabase 管理员权限', 'warning')
+        log('请在 Supabase 控制台中检查：', 'info')
+        log('1. Authentication > Policies > posts 表', 'info')
+        log('2. 确保有允许匿名用户读取的策略', 'info')
+        log('3. 或临时禁用 RLS 进行测试', 'info')
+        recordTest('RLS 策略检查', null, '需要手动检查')
+
+        // 测试 5: 环境变量检查
+        log('\n⚙️  测试 5: 环境变量检查', 'info')
+        log('请在项目中检查：', 'info')
+        log('1. .env 文件是否存在', 'info')
+        log('2. VITE_SUPABASE_URL 是否正确', 'info')
+        log('3. VITE_SUPABASE_ANON_KEY 是否正确', 'info')
+        log('4. 重启开发服务器: npm run dev', 'info')
+        recordTest('环境变量检查', null, '需要手动检查')
+
+        // 生成总结
+        generateSummary(foundTable)
+
+      } catch (err) {
+        log(`\n❌ 诊断过程中发生异常: ${err.message}`, 'error', err)
+        log(`异常堆栈: ${err.stack}`, 'error')
+      }
+
+      log('\n=== 诊断完成 ===', 'info')
+    }
+
+    function generateSummary(foundTable) {
+      const summaryDiv = document.getElementById('summary')
+      const summaryContent = document.getElementById('summaryContent')
+      
+      let html = '<h4>📊 测试结果统计</h4>'
+      html += '<ul>'
+      
+      const passed = testResults.filter(t => t.passed === true).length
+      const failed = testResults.filter(t => t.passed === false).length
+      const skipped = testResults.filter(t => t.passed === null).length
+      
+      html += `<li>✅ 通过: ${passed}</li>`
+      html += `<li>❌ 失败: ${failed}</li>`
+      html += `<li>⚠️  需要手动检查: ${skipped}</li>`
+      html += '</ul>'
+
+      if (foundTable) {
+        html += `<div class="solution success">✅ 找到正确的表名: <strong>${foundTable}</strong></div>`
+        html += '<div class="solution">💡 解决方案: 更新 postService.js 中的表名</div>'
+        html += `<pre>from('${foundTable}')</pre>`
+      } else {
+        html += '<div class="solution failed">❌ 未找到任何表</div>'
+        html += '<div class="solution">💡 可能的原因：</div>'
+        html += '<ul>'
+        html += '<li>1. 表名不是常见的变体（posts/Posts/POSTS）</li>'
+        html += '<li>2. RLS 策略阻止了匿名访问</li>'
+        html += '<li>3. 表在不同的 schema 中</li>'
+        html += '</ul>'
+        html += '<div class="solution">🔧 解决方案：</div>'
+        html += '<ol>'
+        html += '<li>在 Supabase 控制台 SQL Editor 中执行: SELECT * FROM information_schema.tables WHERE table_schema = \'public\';</li>'
+        html += '<li>检查 Authentication > Policies，确保有允许读取的策略</li>'
+        html += '<li>或临时禁用 RLS: ALTER TABLE posts DISABLE ROW LEVEL SECURITY;</li>'
+        html += '</ol>'
+      }
+
+      summaryContent.innerHTML = html
+      summaryDiv.style.display = 'block'
+    }
+
+    window.runDiagnostics = runDiagnostics
+    window.clearLogs = clearLogs
+  </script>
+</body>
+</html>
