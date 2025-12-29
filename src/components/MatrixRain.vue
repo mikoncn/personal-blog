@@ -1,19 +1,47 @@
 <template>
   <canvas ref="matrixCanvas" class="matrix-canvas"></canvas>
+  <div class="chaos-icons-container">
+    <ChaosIcon 
+      v-for="icon in chaosIcons" 
+      :key="icon.name"
+      :name="icon.name"
+      :color="icon.displayColor"
+      :opacity="icon.opacity"
+      :size="`${fontSize}px`"
+      class="chaos-icon"
+      :style="{
+        left: `${icon.x}px`,
+        top: `${icon.y}px`,
+        filter: icon.glowIntensity ? `drop-shadow(0 0 ${icon.glowIntensity * 20}px ${icon.displayGlowColor})` : 'none'
+      }"
+    />
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import ChaosIcon from './ChaosIcon.vue'
 
 const matrixCanvas = ref(null)
 let animationId = null
 let mouseX = -1000
 let mouseY = -1000
 let hoveredWords = []
+let resizeTimeout = null
+
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result ? 
+    `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+    '0, 255, 0'
+}
+
+// 混沌图标位置
+const chaosIcons = ref([])
 
 // 【关键修改 1】：拆分网格宽高。高 16px 完美容纳 14px 字体，宽 10px 适合英文。
-const cellWidth = 10 
-const cellHeight = 16 
+const cellWidth = ref(10)
+const cellHeight = ref(16)
 const fontSize = 14
 
 // 屏幕网格映射表，记录每个格子是否被占用
@@ -44,13 +72,19 @@ function handleMouseMove(e) {
 
 // 处理窗口大小变化事件，重新初始化矩阵
 function handleResize() {
-  initMatrix()
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout)
+  }
+  resizeTimeout = setTimeout(() => {
+    console.log('[MATRIX] 窗口大小改变，重新初始化矩阵')
+    initMatrix()
+  }, 300)
 }
 
 // 获取单个字符占几个横向格子
 function getCharCols(char, ctx) {
   const width = ctx.measureText(char).width
-  return Math.ceil(width / cellWidth)
+  return Math.ceil(width / cellWidth.value)
 }
 
 // 【关键修改 2】：动态计算整个单词需要的总宽度/高度
@@ -139,6 +173,7 @@ function findNextAvailablePosition(startCol, startRow, direction, text, ctx) {
 
 // 初始化矩阵效果，设置画布尺寸和填充字符
 function initMatrix() {
+  console.log('[MATRIX] initMatrix 被调用')
   if (animationId) cancelAnimationFrame(animationId)
 
   const canvas = matrixCanvas.value
@@ -174,14 +209,77 @@ function initMatrix() {
   ctx.font = `${fontSize}px "Fira Code", "Consolas", "Monaco", "Courier New", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif`
 
   // 计算网格行列数
-  cols = Math.ceil(canvas.width / cellWidth)
-  rows = Math.ceil(canvas.height / cellHeight)
+  cols = Math.ceil(canvas.width / cellWidth.value)
+  rows = Math.ceil(canvas.height / cellHeight.value)
 
   // 初始化网格映射表和单元格数组
   screenGridMap = Array(rows).fill().map(() => Array(cols).fill(false))
   gridCells = Array(rows).fill().map(() => Array(cols).fill(null))
 
   let wordIdCounter = 0
+
+  // 【关键修改】：先生成混沌图标位置，标记为占用，这样文字就不会覆盖图标
+  // 四个图标随机分布在Matrix中
+  const iconNames = [
+    { name: 'khorne', color: '#ff0000' },
+    { name: 'nurgle', color: '#00ff00' },
+    { name: 'slaanesh', color: '#ff00ff' },
+    { name: 'tzeentch', color: '#0088ff' }
+  ]
+  chaosIcons.value = []
+  
+  console.log('[CHAOS ICONS] 开始生成图标，当前图标数量:', chaosIcons.value.length)
+  
+  for (const icon of iconNames) {
+    let placed = false
+    let attempts = 0
+    const maxAttempts = 1000
+    
+    while (!placed && attempts < maxAttempts) {
+      attempts++
+      const randomRow = Math.floor(Math.random() * rows)
+      const randomCol = Math.floor(Math.random() * cols)
+      
+      const iconWidthCells = Math.ceil(fontSize / cellWidth.value)
+      const iconHeightCells = Math.ceil(fontSize / cellHeight.value)
+      
+      let canPlace = true
+      for (let r = 0; r < iconHeightCells && (randomRow + r) < rows; r++) {
+        for (let c = 0; c < iconWidthCells && (randomCol + c) < cols; c++) {
+          if (screenGridMap[randomRow + r][randomCol + c]) {
+            canPlace = false
+            break
+          }
+        }
+        if (!canPlace) break
+      }
+      
+      if (canPlace) {
+        for (let r = 0; r < iconHeightCells && (randomRow + r) < rows; r++) {
+          for (let c = 0; c < iconWidthCells && (randomCol + c) < cols; c++) {
+            screenGridMap[randomRow + r][randomCol + c] = true
+          }
+        }
+        
+        chaosIcons.value.push({
+          name: icon.name,
+          color: icon.color,
+          row: randomRow,
+          col: randomCol,
+          x: randomCol * cellWidth.value,
+          y: randomRow * cellHeight.value + (cellHeight.value - fontSize) / 2,
+          opacity: 0.0375,
+          glowIntensity: 0,
+          displayColor: '#00ff00',
+          displayGlowColor: '#00ff00'
+        })
+        placed = true
+        console.log(`[CHAOS ICONS] 添加图标: ${icon.name}, 位置: row=${randomRow}, col=${randomCol}, 占用范围: ${iconWidthCells}x${iconHeightCells} 格子`)
+      }
+    }
+  }
+  
+  console.log('[CHAOS ICONS] 图标生成完成，最终图标数量:', chaosIcons.value.length)
 
   // 尝试在指定位置放置单词
   function placeWord(text, direction, startCol, startRow) {
@@ -281,8 +379,8 @@ function draw() {
 
   // 检查鼠标是否在画布范围内
   if (mouseX >= 0 && mouseX <= canvas.width && mouseY >= 0 && mouseY <= canvas.height) {
-    const col = Math.floor(mouseX / cellWidth)
-    const row = Math.floor(mouseY / cellHeight)
+    const col = Math.floor(mouseX / cellWidth.value)
+    const row = Math.floor(mouseY / cellHeight.value)
 
     // 获取鼠标位置对应的格子
     if (row >= 0 && row < rows && col >= 0 && col < cols) {
@@ -322,8 +420,8 @@ function draw() {
       const cell = gridCells[row][col]
       if (!cell || !cell.isStart) continue
 
-      const x = col * cellWidth
-      const y = row * cellHeight
+      const x = col * cellWidth.value
+      const y = row * cellHeight.value
 
       // 计算距离屏幕中心的距离，用于边缘淡出效果
       const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2))
@@ -359,6 +457,50 @@ function draw() {
     }
   }
 
+  // 更新混沌图标的透明度、发光效果和颜色
+  chaosIcons.value.forEach(icon => {
+    const x = icon.col * cellWidth.value
+    const y = icon.row * cellHeight.value
+    
+    const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2))
+    let fadeFactor = Math.max(0, Math.min(1, (dist - 180) / 270))
+    
+    let glowIntensity = 0
+    for (const hoveredWord of hoveredWords) {
+      const timeSinceHover = currentTime - hoveredWord.lastHoverTime
+      if (timeSinceHover < 3000) {
+        const progress = timeSinceHover / 3000
+        const fadeIntensity = 1 - progress
+        glowIntensity = Math.max(glowIntensity, fadeIntensity)
+      }
+    }
+    
+    const iconWidth = fontSize
+    const iconHeight = fontSize
+    const iconX = x
+    const iconY = y + (cellHeight.value - fontSize) / 2
+    
+    const isHovered = mouseX >= iconX && mouseX <= iconX + iconWidth &&
+                     mouseY >= iconY && mouseY <= iconY + iconHeight
+    
+    if (isHovered) {
+      glowIntensity = Math.max(glowIntensity, 1)
+    }
+    
+    const baseOpacity = 0.0375
+    const maxOpacity = 1.0
+    icon.opacity = (baseOpacity + glowIntensity * (maxOpacity - baseOpacity)) * fadeFactor
+    icon.glowIntensity = glowIntensity
+    
+    if (isHovered) {
+      icon.displayColor = icon.color
+      icon.displayGlowColor = icon.color
+    } else {
+      icon.displayColor = '#00ff00'
+      icon.displayGlowColor = '#00ff00'
+    }
+  })
+
   // 请求下一帧动画
   animationId = requestAnimationFrame(draw)
 }
@@ -373,5 +515,21 @@ function draw() {
   width: 100%;
   height: 100%;
   z-index: -1;
+}
+
+.chaos-icons-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.chaos-icon {
+  position: absolute;
+  display: inline-block;
+  transition: opacity 0.3s ease, filter 0.3s ease;
 }
 </style>

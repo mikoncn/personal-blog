@@ -1,6 +1,5 @@
 <script setup>
 // 导入页面所需的所有组件
-import MatrixRain from '../components/MatrixRain.vue'
 import Header from '../components/Header.vue'
 import Hero from '../components/Hero.vue'
 import PostsSection from '../components/PostsSection.vue'
@@ -9,9 +8,6 @@ import Footer from '../components/Footer.vue'
 </script>
 
 <template>
-  <!-- Matrix雨背景效果，作为整个页面的视觉基础 -->
-  <MatrixRain />
-  
   <!-- 主内容容器，包含所有页面组件 -->
   <div class="container">
     <!-- 网站头部导航 -->
