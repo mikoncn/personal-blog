@@ -1,42 +1,22 @@
 <script setup>
-// 导入Vue核心功能：响应式引用、生命周期钩子、计算属性
-import { ref, onMounted, computed } from 'vue'
-// 导入Vue Router用于页面导航
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-// 导入数据服务
 import { getPostById } from '../services/postService'
-// 导入日期格式化工具
 import { formatDate } from '../utils/dateFormatter'
-// 导入页面组件
+import { renderMarkdown } from '../utils/markdown'
+import '../assets/markdown.css'
 import Header from '../components/Header.vue'
 import Footer from '../components/Footer.vue'
 
-// 初始化路由实例
 const router = useRouter()
-// 接收路由参数中的文章ID
 const props = defineProps(['id'])
 
-// 存储当前文章数据
 const post = ref(null)
-// 加载状态标记
 const loading = ref(true)
-// 错误信息
 const error = ref(null)
 
-// 计算属性：将Markdown格式的内容转换为HTML格式
-// 支持标题（#、##、###）、粗体（**）、代码（`）和换行符
-const formattedContent = computed(() => {
-  if (!post.value) return ''
-  return post.value.content
-    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-    .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/gim, '<code>$1</code>')
-    .replace(/\n/gim, '<br>')
-})
+const formattedContent = ref('')
 
-// 组件挂载时根据ID查找文章
 onMounted(async () => {
   console.log('⚔️ [帝国防卫军日志] 战术小队已部署，圣典 ID:', props.id)
   try {
@@ -44,6 +24,7 @@ onMounted(async () => {
     const foundPost = await getPostById(props.id)
     if (foundPost) {
       post.value = foundPost
+      formattedContent.value = renderMarkdown(foundPost.content)
       console.log('⚔️ [帝国防卫军日志] 圣典装载成功，标题:', foundPost.title)
     } else {
       error.value = '圣典未找到或已被异端摧毁'
@@ -96,7 +77,7 @@ onMounted(async () => {
         <h1 class="post-title">{{ post.title }}</h1>
         
         <!-- 文章正文内容（HTML格式） -->
-        <div class="post-body" v-html="formattedContent"></div>
+        <div class="post-body markdown-content" v-html="formattedContent"></div>
       </div>
       
       <!-- 文章未找到状态 -->
@@ -293,64 +274,6 @@ onMounted(async () => {
   font-size: 1.1rem;
   line-height: 2;
   letter-spacing: 0.5px;
-}
-
-/* 一级标题样式 */
-.post-body :deep(h1) {
-  font-size: 2rem;
-  color: #00ff00;
-  margin: 40px 0 20px;
-  font-family: 'Orbitron', 'Rajdhani', sans-serif;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  border-bottom: 2px solid #00ff00;
-  padding-bottom: 10px;
-}
-
-/* 二级标题样式 */
-.post-body :deep(h2) {
-  font-size: 1.6rem;
-  color: #00ffff;
-  margin: 35px 0 15px;
-  font-family: 'Orbitron', 'Rajdhani', sans-serif;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-/* 三级标题样式 */
-.post-body :deep(h3) {
-  font-size: 1.3rem;
-  color: #ff00ff;
-  margin: 30px 0 12px;
-  font-family: 'Orbitron', 'Rajdhani', sans-serif;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-/* 粗体文字样式 */
-.post-body :deep(strong) {
-  color: #00ff00;
-  font-weight: 700;
-  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
-}
-
-/* 行内代码样式 */
-.post-body :deep(code) {
-  background: rgba(0, 255, 0, 0.1);
-  border: 1px solid #00ff00;
-  color: #00ff00;
-  padding: 2px 8px;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  border-radius: 3px;
-}
-
-/* 换行符间距 */
-.post-body :deep(br) {
-  margin-bottom: 10px;
 }
 
 /* 404页面容器：居中显示 */

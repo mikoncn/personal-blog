@@ -1,0 +1,232 @@
+.markdown-content {
+  color: #e0e0e0;
+  line-height: 1.8;
+  font-size: 16px;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  color: #00ff00;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  border-left: 3px solid #00ff00;
+  padding-left: 10px;
+}
+
+.markdown-content h1 {
+  font-size: 2em;
+  border-bottom: 1px solid #00ff00;
+  padding-bottom: 10px;
+}
+
+.markdown-content h2 {
+  font-size: 1.5em;
+}
+
+.markdown-content h3 {
+  font-size: 1.25em;
+}
+
+.markdown-content p {
+  margin: 1em 0;
+}
+
+.markdown-content a {
+  color: #00ff00;
+  text-decoration: none;
+  border-bottom: 1px dashed #00ff00;
+  transition: all 0.3s;
+}
+
+.markdown-content a:hover {
+  color: #fff;
+  border-bottom: 1px solid #fff;
+  text-shadow: 0 0 10px #00ff00;
+}
+
+.markdown-content blockquote {
+  margin: 1.5em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid #00ff00;
+  background: rgba(0, 255, 0, 0.05);
+  color: #b0b0b0;
+}
+
+.markdown-content blockquote p {
+  margin: 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.markdown-content li {
+  margin: 0.5em 0;
+}
+
+.markdown-content ul li {
+  list-style-type: disc;
+  color: #00ff00;
+}
+
+.markdown-content ul li::marker {
+  color: #00ff00;
+}
+
+.markdown-content ol li {
+  list-style-type: decimal;
+  color: #00ff00;
+}
+
+.markdown-content ol li::marker {
+  color: #00ff00;
+}
+
+.markdown-content code {
+  background: rgba(0, 255, 0, 0.1);
+  color: #00ff00;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-content pre {
+  background: rgba(0, 20, 0, 0.8);
+  border: 1px solid #00ff00;
+  border-radius: 5px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+}
+
+.markdown-content pre code {
+  background: transparent;
+  padding: 0;
+  color: #00ff00;
+  font-size: 14px;
+}
+
+.markdown-content .hljs {
+  background: transparent;
+  color: #00ff00;
+}
+
+.markdown-content .hljs-keyword,
+.markdown-content .hljs-title,
+.markdown-content .hljs-name,
+.markdown-content .hljs-tag {
+  color: #00ff00;
+  font-weight: bold;
+}
+
+.markdown-content .hljs-string,
+.markdown-content .hljs-attr,
+.markdown-content .hljs-value {
+  color: #7fff00;
+}
+
+.markdown-content .hljs-comment {
+  color: #4caf50;
+  font-style: italic;
+}
+
+.markdown-content .hljs-number,
+.markdown-content .hljs-literal {
+  color: #00ffff;
+}
+
+.markdown-content .hljs-function {
+  color: #ffff00;
+}
+
+.markdown-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5em 0;
+  border: 1px solid #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.1);
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid #00ff00;
+  padding: 0.75em;
+  text-align: left;
+}
+
+.markdown-content th {
+  background: rgba(0, 255, 0, 0.15);
+  color: #00ff00;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.markdown-content tr:nth-child(even) {
+  background: rgba(0, 255, 0, 0.03);
+}
+
+.markdown-content tr:hover {
+  background: rgba(0, 255, 0, 0.08);
+}
+
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid #00ff00;
+  border-radius: 5px;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+}
+
+.markdown-content hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #00ff00, transparent);
+  margin: 2em 0;
+}
+
+.markdown-content .katex {
+  color: #00ff00;
+}
+
+.markdown-content .katex-display {
+  margin: 1.5em 0;
+  overflow-x: auto;
+  padding: 1em;
+  background: rgba(0, 20, 0, 0.5);
+  border: 1px solid #00ff00;
+  border-radius: 5px;
+}
+
+.markdown-content .katex-display > .katex {
+  text-align: center;
+}
+
+.markdown-content strong {
+  color: #00ff00;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.markdown-content em {
+  color: #7fff00;
+  font-style: italic;
+}
+
+.markdown-content del {
+  color: #ff0000;
+  text-decoration: line-through;
+}
+
+.markdown-content input[type="checkbox"] {
+  accent-color: #00ff00;
+}

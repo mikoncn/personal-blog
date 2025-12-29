@@ -1,7 +1,9 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../utils/supabase'
+import { renderMarkdown } from '../utils/markdown'
+import '../assets/markdown.css'
 
 const router = useRouter()
 
@@ -16,6 +18,111 @@ const formData = ref({
 const submitting = ref(false)
 const message = ref('')
 const messageType = ref('')
+
+const editorRef = ref(null)
+const previewRef = ref(null)
+
+const renderedContent = computed(() => {
+  return renderMarkdown(formData.value.content)
+})
+
+watch(() => formData.value.content, () => {
+  syncScroll()
+})
+
+function syncScroll() {
+  if (editorRef.value && previewRef.value) {
+    const editor = editorRef.value
+    const preview = previewRef.value
+    const scrollPercentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight)
+    preview.scrollTop = scrollPercentage * (preview.scrollHeight - preview.clientHeight)
+  }
+}
+
+function insertMarkdown(pattern, placeholder = '') {
+  const textarea = editorRef.value
+  if (!textarea) return
+
+  const start = textarea.selectionStart
+  const end = textarea.selectionEnd
+  const text = formData.value.content
+  const selectedText = text.substring(start, end)
+
+  const before = text.substring(0, start)
+  const after = text.substring(end)
+
+  let newText
+  let cursorPos
+
+  if (selectedText) {
+    newText = before + pattern.replace('$$', selectedText) + after
+    cursorPos = start + pattern.replace('$$', selectedText).length
+  } else {
+    newText = before + pattern.replace('$$', placeholder) + after
+    cursorPos = start + pattern.replace('$$', placeholder).length
+  }
+
+  formData.value.content = newText
+
+  nextTick(() => {
+    textarea.focus()
+    textarea.setSelectionRange(cursorPos, cursorPos)
+  })
+}
+
+function insertBold() {
+  insertMarkdown('**$$**', '粗体文本')
+}
+
+function insertItalic() {
+  insertMarkdown('*$$*', '斜体文本')
+}
+
+function insertCode() {
+  insertMarkdown('`$$`', '代码')
+}
+
+function insertCodeBlock() {
+  insertMarkdown('```\n$$\n```', '代码块')
+}
+
+function insertLink() {
+  insertMarkdown('[$$](url)', '链接文本')
+}
+
+function insertImage() {
+  insertMarkdown('![$$](url)', '图片描述')
+}
+
+function insertQuote() {
+  insertMarkdown('> $$', '引用内容')
+}
+
+function insertList() {
+  insertMarkdown('- $$', '列表项')
+}
+
+function insertHeading() {
+  insertMarkdown('## $$', '标题')
+}
+
+function insertTable() {
+  const table = '| 标题1 | 标题2 | 标题3 |\n|-------|-------|-------|\n| 内容1 | 内容2 | 内容3 |\n| 内容4 | 内容5 | 内容6 |'
+  const textarea = editorRef.value
+  if (!textarea) return
+
+  const start = textarea.selectionStart
+  const text = formData.value.content
+  const before = text.substring(0, start)
+  const after = text.substring(start)
+
+  formData.value.content = before + table + after
+
+  nextTick(() => {
+    textarea.focus()
+    textarea.setSelectionRange(start + table.length, start + table.length)
+  })
+}
 
 async function handleSubmit() {
   console.log('⚙️ [神圣机械日志] 机魂注魔仪式启动...')
@@ -152,13 +259,60 @@ async function handleSubmit() {
             <span class="label-icon">📖</span>
             正文
           </label>
-          <textarea 
-            v-model="formData.content" 
-            class="form-input form-textarea" 
-            placeholder="输入圣典正文内容..."
-            rows="15"
-            required
-          ></textarea>
+          
+          <div class="toolbar">
+            <button type="button" class="toolbar-btn" @click="insertBold" title="粗体">
+              <strong>B</strong>
+            </button>
+            <button type="button" class="toolbar-btn" @click="insertItalic" title="斜体">
+              <em>I</em>
+            </button>
+            <button type="button" class="toolbar-btn" @click="insertCode" title="行内代码">
+              &lt;/&gt;
+            </button>
+            <button type="button" class="toolbar-btn" @click="insertCodeBlock" title="代码块">
+              { }
+            </button>
+            <button type="button" class="toolbar-btn" @click="insertLink" title="链接">
+              🔗
+            </button>
+            <button type="button" class="toolbar-btn" @click="insertImage" title="图片">
+              🖼️
+            </button>
+            <button type="button" class="toolbar-btn" @click="insertQuote" title="引用">
+              ❝
+            </button>
+            <button type="button" class="toolbar-btn" @click="insertList" title="列表">
+              ☰
+            </button>
+            <button type="button" class="toolbar-btn" @click="insertHeading" title="标题">
+              H
+            </button>
+            <button type="button" class="toolbar-btn" @click="insertTable" title="表格">
+              ⊞
+            </button>
+          </div>
+
+          <div class="split-container">
+            <div class="editor-pane">
+              <textarea 
+                ref="editorRef"
+                v-model="formData.content" 
+                class="form-input editor-textarea" 
+                placeholder="输入圣典正文内容..."
+                rows="20"
+                required
+                @scroll="syncScroll"
+              ></textarea>
+            </div>
+            <div class="preview-pane">
+              <div 
+                ref="previewRef"
+                class="markdown-preview"
+                v-html="renderedContent"
+              ></div>
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -209,33 +363,63 @@ async function handleSubmit() {
 .back-button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: rgba(0, 255, 0, 0.1);
+  gap: 10px;
+  padding: 12px 30px;
+  background-color: #0a0a0a;
   border: 2px solid #00ff00;
   color: #00ff00;
   text-decoration: none;
+  font-size: 1rem;
   font-family: 'Orbitron', 'Rajdhani', sans-serif;
-  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
   font-weight: 600;
-  letter-spacing: 1px;
+  border-radius: 6px;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  transform: skewX(-3deg);
+}
+
+.back-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.back-button:hover::before {
+  left: 100%;
 }
 
 .back-button:hover {
-  background: rgba(0, 255, 0, 0.2);
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
-  transform: translateX(-5px);
-}
-
-.back-button:hover svg {
-  stroke: #000;
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ff00;
+  transform: skewX(-3deg) scale(1.05);
 }
 
 .back-button-text {
-  position: relative;
-  z-index: 1;
+  font-weight: 600;
+}
+
+.back-button svg {
+  width: 20px;
+  height: 20px;
+  transition: all 0.3s ease;
+}
+
+.back-button:hover svg {
+  transform: translateX(-3px);
+}
+
+.back-button:hover svg path {
+  stroke: #0a0a0a;
 }
 
 .page-header {
@@ -299,12 +483,12 @@ async function handleSubmit() {
 }
 
 .form-section {
-  max-width: 800px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
 .sacred-form {
-  background: rgba(0, 20, 0, 0.8);
+  background: rgba(20, 15, 0, 0.8);
   border: 2px solid rgba(0, 255, 0, 0.3);
   border-radius: 10px;
   padding: 40px;
@@ -360,6 +544,86 @@ async function handleSubmit() {
   resize: vertical;
   min-height: 100px;
   line-height: 1.6;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-btn {
+  padding: 8px 12px;
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  color: #00ff00;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 3px;
+}
+
+.toolbar-btn:hover {
+  background: rgba(0, 255, 0, 0.2);
+  border-color: #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.toolbar-btn:active {
+  transform: scale(0.95);
+}
+
+.split-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  min-height: 500px;
+}
+
+.editor-pane,
+.preview-pane {
+  border: 2px solid rgba(0, 255, 0, 0.3);
+  border-radius: 5px;
+  overflow: hidden;
+  background: rgba(0, 20, 0, 0.6);
+}
+
+.editor-textarea {
+  width: 100%;
+  height: 500px;
+  padding: 15px;
+  background: rgba(0, 20, 0, 0.8);
+  border: none;
+  color: #00ff00;
+  font-family: 'Courier New', 'Consolas', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+}
+
+.editor-textarea::placeholder {
+  color: rgba(0, 255, 0, 0.3);
+}
+
+.markdown-preview {
+  height: 500px;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(0, 20, 0, 0.8);
+}
+
+@media (max-width: 768px) {
+  .split-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .editor-textarea,
+  .markdown-preview {
+    height: 300px;
+  }
 }
 
 .form-hint {
