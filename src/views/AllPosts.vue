@@ -20,8 +20,16 @@
             type="text" 
             placeholder="搜索文章..." 
             class="search-input"
+            @keyup.enter="performSearch"
           />
-          <span class="search-icon">🔍</span>
+          <button class="search-btn" @click="performSearch">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="8" stroke="#00ff00" stroke-width="2"/>
+              <line x1="17" y1="17" x2="22" y2="22" stroke="#00ff00" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="11" cy="11" r="6" stroke="#00ff00" stroke-width="0.5" opacity="0.5"/>
+            </svg>
+            <span class="search-btn-text">搜索</span>
+          </button>
         </div>
         
         <!-- 分类标签切换 -->
@@ -40,7 +48,7 @@
       <!-- 文章卡片网格 -->
       <div class="posts-grid">
         <div 
-          v-for="post in filteredPosts" 
+          v-for="post in paginatedPosts" 
           :key="post.id" 
           class="post-card"
           @click="goToPost(post.id)"
@@ -67,13 +75,43 @@
       <div v-if="filteredPosts.length === 0" class="no-results">
         <p>没有找到匹配的文章</p>
       </div>
+
+      <!-- 分页导航 -->
+      <div v-if="totalPages > 1" class="pagination">
+        <button 
+          class="pagination-btn prev-btn" 
+          :disabled="currentPage === 1"
+          @click="prevPage"
+        >
+          ← 上一页
+        </button>
+        
+        <div class="pagination-numbers">
+          <button 
+            v-for="page in totalPages" 
+            :key="page"
+            :class="['pagination-number', { active: page === currentPage }]"
+            @click="goToPage(page)"
+          >
+            {{ page }}
+          </button>
+        </div>
+        
+        <button 
+          class="pagination-btn next-btn" 
+          :disabled="currentPage === totalPages"
+          @click="nextPage"
+        >
+          下一页 →
+        </button>
+      </div>
     </section>
   </div>
 </template>
 
 <script setup>
 // 导入Vue核心功能：响应式引用和计算属性
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 // 导入Vue Router用于页面导航
 import { useRouter } from 'vue-router'
 // 导入文章数据
@@ -83,10 +121,16 @@ import postsData from '../data/posts.json'
 const router = useRouter()
 // 存储所有文章数据
 const posts = ref(postsData)
-// 搜索查询关键词
+// 搜索输入框的关键词
 const searchQuery = ref('')
+// 实际用于搜索的关键词
+const activeSearchQuery = ref('')
 // 当前选中的分类
 const selectedCategory = ref('All')
+// 当前页码
+const currentPage = ref(1)
+// 每页显示的文章数量
+const itemsPerPage = 9
 
 // 所有可用的分类选项
 const categories = ['All', 'Web3', 'Dev', 'Life', 'Arbitrage']
@@ -101,8 +145,8 @@ const filteredPosts = computed(() => {
   }
   
   // 按搜索关键词筛选（匹配标题、摘要、分类和标签）
-  if (searchQuery.value.trim()) {
-    const query = searchQuery.value.toLowerCase()
+  if (activeSearchQuery.value.trim()) {
+    const query = activeSearchQuery.value.toLowerCase()
     result = result.filter(post => 
       post.title.toLowerCase().includes(query) ||
       post.excerpt.toLowerCase().includes(query) ||
@@ -114,9 +158,54 @@ const filteredPosts = computed(() => {
   return result
 })
 
+// 计算属性：总页数
+const totalPages = computed(() => {
+  return Math.ceil(filteredPosts.value.length / itemsPerPage)
+})
+
+// 计算属性：当前页显示的文章
+const paginatedPosts = computed(() => {
+  const startIndex = (currentPage.value - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  return filteredPosts.value.slice(startIndex, endIndex)
+})
+
+// 监听分类变化，重置到第一页
+watch(selectedCategory, () => {
+  currentPage.value = 1
+})
+
+// 执行搜索
+function performSearch() {
+  activeSearchQuery.value = searchQuery.value
+  currentPage.value = 1
+}
+
 // 跳转到文章详情页
 function goToPost(id) {
   router.push(`/post/${id}`)
+}
+
+// 切换到指定页码
+function goToPage(page) {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
+// 上一页
+function prevPage() {
+  if (currentPage.value > 1) {
+    goToPage(currentPage.value - 1)
+  }
+}
+
+// 下一页
+function nextPage() {
+  if (currentPage.value < totalPages.value) {
+    goToPage(currentPage.value + 1)
+  }
 }
 </script>
 
@@ -208,7 +297,7 @@ function goToPost(id) {
 
 /* 筛选器容器：搜索框和分类标签 */
 .filter-container {
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.95);
   border: 1px solid #00ff00;
   padding: 20px;
   margin-bottom: 30px;
@@ -244,12 +333,14 @@ function goToPost(id) {
 .search-box {
   position: relative;
   margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
 }
 
 /* 搜索输入框样式 */
 .search-input {
-  width: 100%;
-  padding: 15px 50px 15px 20px;
+  flex: 1;
+  padding: 15px 20px;
   background: rgba(0, 0, 0, 0.8);
   border: 1px solid #00ff00;
   color: #00ff00;
@@ -273,14 +364,63 @@ function goToPost(id) {
   box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
 }
 
-/* 搜索图标 */
-.search-icon {
+/* 搜索按钮样式 */
+.search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 40px;
+  background-color: transparent;
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  font-size: 1rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  transform: skewX(-3deg);
+}
+
+/* 搜索按钮扫描效果 */
+.search-btn::before {
+  content: '';
   position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.2rem;
-  pointer-events: none;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+/* 悬停时扫描线移动 */
+.search-btn:hover::before {
+  left: 100%;
+}
+
+/* 搜索按钮悬停效果 */
+.search-btn:hover {
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ff00;
+  transform: skewX(-3deg) scale(1.05);
+}
+
+/* 搜索按钮文字 */
+.search-btn-text {
+  font-weight: 600;
+}
+
+/* 搜索按钮 SVG 图标 */
+.search-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* 分类标签容器 */
@@ -292,19 +432,22 @@ function goToPost(id) {
 
 /* 分类标签按钮样式 */
 .tab-button {
-  padding: 10px 25px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid #00ff00;
+  padding: 15px 40px;
+  background-color: transparent;
+  border: 2px solid #00ff00;
   color: #00ff00;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   font-family: 'Orbitron', 'Rajdhani', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 3px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-radius: 4px;
+  border-radius: 6px;
   position: relative;
   overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  transform: skewX(-3deg);
 }
 
 /* 标签按钮悬停扫描效果 */
@@ -315,7 +458,7 @@ function goToPost(id) {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.4), transparent);
   transition: left 0.5s ease;
 }
 
@@ -326,19 +469,19 @@ function goToPost(id) {
 
 /* 标签按钮悬停效果 */
 .tab-button:hover {
-  border-color: #00ffff;
-  color: #00ffff;
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
-  transform: translateY(-2px);
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ff00;
+  transform: skewX(-3deg) scale(1.1);
 }
 
 /* 激活的标签按钮样式 */
 .tab-button.active {
-  background: rgba(0, 255, 0, 0.2);
-  border-color: #00ffff;
-  color: #00ffff;
-  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-  text-shadow: 0 0 10px #00ffff;
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ff00;
+  text-shadow: none;
+  transform: skewX(-3deg) scale(1.1);
 }
 
 /* 文章卡片网格布局 */
@@ -350,7 +493,7 @@ function goToPost(id) {
 
 /* 文章卡片样式 */
 .post-card {
-  background: rgba(0, 255, 0, 0.05);
+  background: rgba(0, 0, 0, 0.95);
   border: 1px solid #00ff00;
   padding: 30px;
   transition: all 0.3s ease;
@@ -481,12 +624,12 @@ function goToPost(id) {
 
 /* 单个标签样式 */
 .tag {
-  background: rgba(0, 255, 0, 0.1);
+  background-color: transparent;
   color: #00ff00;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 0.75rem;
-  border: 1px solid rgba(0, 255, 0, 0.3);
+  border: 2px solid #00ff00;
   transition: all 0.3s ease;
   font-family: 'Orbitron', 'Rajdhani', sans-serif;
   text-transform: uppercase;
@@ -494,9 +637,10 @@ function goToPost(id) {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
 }
 
-/* 标签悬停扫描效果 */
+/* 标签扫描效果 */
 .tag::before {
   content: '';
   position: absolute;
@@ -515,11 +659,10 @@ function goToPost(id) {
 
 /* 标签悬停效果 */
 .tag:hover {
-  background: rgba(0, 255, 0, 0.2);
-  border-color: #00ff00;
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
-  transform: translateY(-2px);
-  text-shadow: 0 0 8px #00ff00;
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 20px #00ff00;
+  transform: translateY(-2px) scale(1.05);
 }
 
 /* 阅读更多链接 */
@@ -592,6 +735,178 @@ function goToPost(id) {
   .post-title {
     font-size: 1.1rem;
     letter-spacing: 0.5px;
+  }
+
+  /* 移动端分类标签按钮 */
+  .tab-button {
+    padding: 12px 30px;
+    font-size: 1rem;
+    letter-spacing: 2px;
+  }
+
+  /* 移动端搜索框 */
+  .search-box {
+    flex-direction: column;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .search-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* 分页导航容器 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 50px;
+  padding: 30px 20px;
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid #00ff00;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+}
+
+/* 分页按钮样式 */
+.pagination-btn {
+  padding: 15px 40px;
+  background-color: transparent;
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  font-size: 1.1rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  transform: skewX(-3deg);
+}
+
+/* 分页按钮扫描效果 */
+.pagination-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.pagination-btn:hover::before {
+  left: 100%;
+}
+
+/* 分页按钮悬停效果 */
+.pagination-btn:hover:not(:disabled) {
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ff00;
+  transform: skewX(-3deg) scale(1.1);
+}
+
+/* 禁用状态的分页按钮 */
+.pagination-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  border-color: #333;
+  color: #666;
+  text-shadow: none;
+  transform: skewX(-3deg);
+}
+
+/* 页码数字容器 */
+.pagination-numbers {
+  display: flex;
+  gap: 8px;
+}
+
+/* 单个页码按钮样式 */
+.pagination-number {
+  width: 60px;
+  height: 60px;
+  background-color: transparent;
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  font-size: 1.1rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  transform: skewX(-3deg);
+}
+
+/* 页码按钮扫描效果 */
+.pagination-number::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.pagination-number:hover::before {
+  left: 100%;
+}
+
+/* 页码按钮悬停效果 */
+.pagination-number:hover {
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ff00;
+  transform: skewX(-3deg) scale(1.1);
+}
+
+/* 激活状态的页码按钮 */
+.pagination-number.active {
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ff00;
+  text-shadow: none;
+  transform: skewX(-3deg) scale(1.1);
+}
+
+/* 移动端分页适配 */
+@media (max-width: 768px) {
+  .pagination {
+    flex-direction: column;
+    gap: 15px;
+    padding: 20px;
+  }
+
+  .pagination-numbers {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pagination-number {
+    width: 50px;
+    height: 50px;
+    font-size: 1rem;
+  }
+
+  .pagination-btn {
+    padding: 12px 30px;
+    font-size: 1rem;
   }
 }
 </style>
