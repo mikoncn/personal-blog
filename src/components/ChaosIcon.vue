@@ -2,20 +2,13 @@
 import { computed } from 'vue'
 
 const props = defineProps({
-  name: {
-    type: String,
-    required: true
-  },
-  size: {
-    type: String,
-    default: '1.2em'
-  },
-  color: {
-    type: String,
-    default: 'currentColor'
-  }
+  name: { type: String, required: true },
+  size: { type: String, default: '1.2em' },
+  color: { type: String, default: 'var(--color-primary, #00ff00)' },
+  opacity: { type: Number, default: 1 }
 })
 
+// ⚠️ 文件名映射（确保与 public 目录一致）
 const iconMap = {
   'khorne': '/Khorne.svg',
   'nurgle': '/Nurgle.svg',
@@ -34,6 +27,7 @@ const iconStyle = computed(() => {
     width: props.size,
     height: props.size,
     backgroundColor: props.color,
+    opacity: props.opacity,
     maskImage: `url("${fileUrl}")`,
     maskSize: 'contain',
     maskRepeat: 'no-repeat',
@@ -57,7 +51,11 @@ const iconStyle = computed(() => {
 
 <style scoped>
 .chaos-icon {
-  display: inline-block;
-  vertical-align: -0.2em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin-right: 0.3em;
+  flex-shrink: 0;
 }
 </style>

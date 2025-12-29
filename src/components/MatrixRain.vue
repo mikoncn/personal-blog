@@ -465,16 +465,6 @@ function draw() {
     const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2))
     let fadeFactor = Math.max(0, Math.min(1, (dist - 180) / 270))
     
-    let glowIntensity = 0
-    for (const hoveredWord of hoveredWords) {
-      const timeSinceHover = currentTime - hoveredWord.lastHoverTime
-      if (timeSinceHover < 3000) {
-        const progress = timeSinceHover / 3000
-        const fadeIntensity = 1 - progress
-        glowIntensity = Math.max(glowIntensity, fadeIntensity)
-      }
-    }
-    
     const iconWidth = fontSize
     const iconHeight = fontSize
     const iconX = x
@@ -483,11 +473,12 @@ function draw() {
     const isHovered = mouseX >= iconX && mouseX <= iconX + iconWidth &&
                      mouseY >= iconY && mouseY <= iconY + iconHeight
     
+    let glowIntensity = 0
     if (isHovered) {
-      glowIntensity = Math.max(glowIntensity, 1)
+      glowIntensity = 1
     }
     
-    const baseOpacity = 0.0375
+    const baseOpacity = 0.2
     const maxOpacity = 1.0
     icon.opacity = (baseOpacity + glowIntensity * (maxOpacity - baseOpacity)) * fadeFactor
     icon.glowIntensity = glowIntensity
