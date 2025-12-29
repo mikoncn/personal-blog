@@ -196,29 +196,29 @@ const paginatedPosts = computed(() => {
 
 // 监听分类变化，重置到第一页
 watch(selectedCategory, () => {
-  console.log('[DEBUG AllPosts] 分类切换:', selectedCategory.value)
+  console.log('⚔️ [帝国防卫军日志] 战术分类切换:', selectedCategory.value)
   currentPage.value = 1
-  console.log('[DEBUG AllPosts] 页码重置为 1')
+  console.log('⚔️ [帝国防卫军日志] 战术坐标重置为 1')
 })
 
 // 执行搜索
 function performSearch() {
-  console.log('[DEBUG AllPosts] 执行搜索，关键词:', searchQuery.value)
+  console.log('⚔️ [帝国防卫军日志] 发起神圣搜寻，关键词:', searchQuery.value)
   activeSearchQuery.value = searchQuery.value
   currentPage.value = 1
-  console.log('[DEBUG AllPosts] 搜索后筛选结果数:', filteredPosts.value.length)
+  console.log('⚔️ [帝国防卫军日志] 搜寻完成，发现', filteredPosts.value.length, '个目标')
 }
 
 // 跳转到文章详情页
 function goToPost(id) {
-  console.log('[DEBUG AllPosts] 点击文章卡片，准备跳转到文章详情，ID:', id)
+  console.log('⚔️ [帝国防卫军日志] 战术小队准备跃迁，目标圣典 ID:', id)
   router.push(`/post/${id}`)
 }
 
 // 切换到指定页码
 function goToPage(page) {
   if (page >= 1 && page <= totalPages.value) {
-    console.log('[DEBUG AllPosts] 跳转到第', page, '页')
+    console.log('⚔️ [帝国防卫军日志] 战术小队跃迁至第', page, '扇区')
     currentPage.value = page
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -227,7 +227,7 @@ function goToPage(page) {
 // 上一页
 function prevPage() {
   if (currentPage.value > 1) {
-    console.log('[DEBUG AllPosts] 点击上一页，当前页:', currentPage.value)
+    console.log('⚔️ [帝国防卫军日志] 战术小队撤退至上一扇区，当前扇区:', currentPage.value)
     goToPage(currentPage.value - 1)
   }
 }
@@ -235,30 +235,30 @@ function prevPage() {
 // 下一页
 function nextPage() {
   if (currentPage.value < totalPages.value) {
-    console.log('[DEBUG AllPosts] 点击下一页，当前页:', currentPage.value)
+    console.log('⚔️ [帝国防卫军日志] 战术小队推进至下一扇区，当前扇区:', currentPage.value)
     goToPage(currentPage.value + 1)
   }
 }
 
 // 加载数据
 onMounted(async () => {
-  console.log('[DEBUG AllPosts] 组件挂载，开始加载数据...')
+  console.log('⚔️ [帝国防卫军日志] 战术小队已部署，开始加载数据...')
   try {
-    console.log('[DEBUG AllPosts] 并行请求文章列表和分类列表...')
+    console.log('⚔️ [帝国防卫军日志] 并行请求圣典目录和分类目录...')
     const [postsData, categoriesData] = await Promise.all([
       getAllPosts(),
       getAllCategories()
     ])
     posts.value = postsData
     categories.value = ['All', ...categoriesData]
-    console.log('[DEBUG AllPosts] 数据加载完成，文章数:', posts.value.length, '分类数:', categories.value.length)
-    console.log('[DEBUG AllPosts] 分类列表:', categories.value)
+    console.log('⚔️ [帝国防卫军日志] 数据装载完成，圣典数:', posts.value.length, '分类数:', categories.value.length)
+    console.log('⚔️ [帝国防卫军日志] 分类目录:', categories.value)
   } catch (err) {
     error.value = err.message
-    console.error('[ERROR AllPosts] 加载数据失败:', err)
+    console.error('☠️ [异端警告] 数据装载失败！', err)
   } finally {
     loading.value = false
-    console.log('[DEBUG AllPosts] 加载状态结束，loading = false')
+    console.log('⚔️ [帝国防卫军日志] 装载程序结束，战斗准备就绪')
   }
 })
 </script>

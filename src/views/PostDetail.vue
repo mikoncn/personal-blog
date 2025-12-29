@@ -38,23 +38,23 @@ const formattedContent = computed(() => {
 
 // 组件挂载时根据ID查找文章
 onMounted(async () => {
-  console.log('[DEBUG PostDetail] 组件挂载，文章ID:', props.id)
+  console.log('⚔️ [帝国防卫军日志] 战术小队已部署，圣典 ID:', props.id)
   try {
-    console.log('[DEBUG PostDetail] 开始获取文章详情...')
+    console.log('⚔️ [帝国防卫军日志] 开始检索圣典数据...')
     const foundPost = await getPostById(props.id)
     if (foundPost) {
       post.value = foundPost
-      console.log('[DEBUG PostDetail] 文章加载成功，标题:', foundPost.title)
+      console.log('⚔️ [帝国防卫军日志] 圣典装载成功，标题:', foundPost.title)
     } else {
-      error.value = '文章未找到'
-      console.error('[ERROR PostDetail] 文章未找到，ID:', props.id)
+      error.value = '圣典未找到或已被异端摧毁'
+      console.error('☠️ [异端警告] 圣典检索失败，ID:', props.id)
     }
   } catch (err) {
     error.value = err.message
-    console.error('[ERROR PostDetail] 加载文章失败:', err)
+    console.error('☠️ [异端警告] 圣典装载失败！', err)
   } finally {
     loading.value = false
-    console.log('[DEBUG PostDetail] 加载状态结束，loading = false')
+    console.log('⚔️ [帝国防卫军日志] 装载程序结束，战斗准备就绪')
   }
 })
 </script>

@@ -55,22 +55,22 @@ const latestPosts = computed(() => {
 })
 
 function goToPost(id) {
-  console.log('[DEBUG PostsSection] 点击文章卡片，准备跳转到文章详情，ID:', id)
+  console.log('⚔️ [帝国防卫军日志] 战术小队准备跃迁，目标圣典 ID:', id)
   router.push(`/post/${id}`)
 }
 
 onMounted(async () => {
-  console.log('[DEBUG PostsSection] 组件挂载，开始加载文章...')
+  console.log('⚔️ [帝国防卫军日志] 战术小队已部署，开始加载圣典...')
   try {
     posts.value = await getAllPosts()
-    console.log('[DEBUG PostsSection] 文章加载完成，共', posts.value.length, '篇')
-    console.log('[DEBUG PostsSection] 最新文章:', latestPosts.value.map(p => ({ id: p.id, title: p.title })))
+    console.log('⚔️ [帝国防卫军日志] 圣典装载完成，共', posts.value.length, '篇')
+    console.log('⚔️ [帝国防卫军日志] 最新圣典:', latestPosts.value.map(p => ({ id: p.id, title: p.title })))
   } catch (err) {
     error.value = err.message
-    console.error('[ERROR PostsSection] 加载文章失败:', err)
+    console.error('☠️ [异端警告] 圣典装载失败！', err)
   } finally {
     loading.value = false
-    console.log('[DEBUG PostsSection] 加载状态结束，loading = false')
+    console.log('⚔️ [帝国防卫军日志] 装载程序结束，战斗准备就绪')
   }
 })
 </script>
