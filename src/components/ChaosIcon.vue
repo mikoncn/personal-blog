@@ -4,78 +4,60 @@ import { computed } from 'vue'
 const props = defineProps({
   name: {
     type: String,
-    required: true,
-    validator: (value) => ['khorne', 'nurgle', 'slaanesh', 'tzeentch'].includes(value.toLowerCase())
+    required: true
   },
   size: {
     type: String,
-    default: '24px'
+    default: '1.2em'
   },
   color: {
     type: String,
     default: 'currentColor'
-  },
-  opacity: {
-    type: Number,
-    default: 1
   }
 })
 
 const iconMap = {
-  khorne: 'Khorne.svg',
-  nurgle: 'Nurgle.svg',
-  slaanesh: 'Slaanesh.svg',
-  tzeentch: 'Tzeentch.svg'
+  'khorne': '/Khorne.svg',
+  'nurgle': '/Nurgle.svg',
+  'tzeentch': '/Tzeentch.svg',
+  'slaanesh': '/Slaanesh.svg',
+  'undivided': '/Chaos.svg',
+  'aquila': '/Aquila.svg',
+  'mechanicus': '/Mechanicus.svg'
 }
 
-const iconPath = computed(() => {
-  const fileName = iconMap[props.name.toLowerCase()]
-  return `/${fileName}`
-})
-
 const iconStyle = computed(() => {
-  const color = props.color
-  const opacity = props.opacity
-  
-  let backgroundColor
-  if (color.startsWith('rgba')) {
-    backgroundColor = color
-  } else {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color)
-    if (result) {
-      const r = parseInt(result[1], 16)
-      const g = parseInt(result[2], 16)
-      const b = parseInt(result[3], 16)
-      backgroundColor = `rgba(${r}, ${g}, ${b}, ${opacity})`
-    } else {
-      backgroundColor = `rgba(0, 255, 0, ${opacity})`
-    }
-  }
-  
+  const iconName = props.name.toLowerCase()
+  const fileUrl = iconMap[iconName] || iconMap['undivided']
+
   return {
     width: props.size,
     height: props.size,
-    maskImage: `url(${iconPath.value})`,
-    WebkitMaskImage: `url(${iconPath.value})`,
+    backgroundColor: props.color,
+    maskImage: `url("${fileUrl}")`,
     maskSize: 'contain',
-    WebkitMaskSize: 'contain',
     maskRepeat: 'no-repeat',
-    WebkitMaskRepeat: 'no-repeat',
     maskPosition: 'center',
-    WebkitMaskPosition: 'center',
-    backgroundColor
+    webkitMaskImage: `url("${fileUrl}")`,
+    webkitMaskSize: 'contain',
+    webkitMaskRepeat: 'no-repeat',
+    webkitMaskPosition: 'center'
   }
 })
 </script>
 
 <template>
-  <div class="chaos-icon-inner" :style="iconStyle" :data-icon="name"></div>
+  <i 
+    class="chaos-icon" 
+    :style="iconStyle" 
+    :title="name" 
+    role="img"
+  ></i>
 </template>
 
 <style scoped>
-.chaos-icon-inner {
-  display: block;
-  width: 100%;
-  height: 100%;
+.chaos-icon {
+  display: inline-block;
+  vertical-align: -0.2em;
 }
 </style>
