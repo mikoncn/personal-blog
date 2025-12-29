@@ -16,8 +16,11 @@ const cellWidth = 10
 const cellHeight = 16 
 const fontSize = 14
 
+// 屏幕网格映射表，记录每个格子是否被占用
 let screenGridMap = []
+// 网格单元格数组，存储每个格子的字符和元数据
 let gridCells = []
+// 屏幕的列数和行数
 let cols = 0
 let rows = 0
 
@@ -33,11 +36,13 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
 })
 
+// 处理鼠标移动事件，更新鼠标位置
 function handleMouseMove(e) {
   mouseX = e.clientX
   mouseY = e.clientY
 }
 
+// 处理窗口大小变化事件，重新初始化矩阵
 function handleResize() {
   initMatrix()
 }
@@ -119,6 +124,7 @@ function markCellsAsOccupied(startCol, startRow, direction, text, cellData, ctx)
   }
 }
 
+// 查找下一个可用的位置来放置单词
 function findNextAvailablePosition(startCol, startRow, direction, text, ctx) {
   for (let row = startRow; row < rows; row++) {
     const startColForRow = (row === startRow) ? startCol : 0
@@ -131,6 +137,7 @@ function findNextAvailablePosition(startCol, startRow, direction, text, ctx) {
   return null
 }
 
+// 初始化矩阵效果，设置画布尺寸和填充字符
 function initMatrix() {
   if (animationId) cancelAnimationFrame(animationId)
 
@@ -160,19 +167,23 @@ function initMatrix() {
     'ﾏ', 'ﾐ', 'ﾑ', 'ﾒ', 'ﾓ', 'ﾔ', 'ﾕ', 'ﾖ', 'ﾗ', 'ﾘ', 'ﾙ', 'ﾚ', 'ﾛ', 'ﾜ', 'ｦ', 'ﾝ'
   ]
 
+  // 筛选短单词用于纵向排列
   const shortEnglishWords = englishWords.filter(w => w.length <= 5)
   const shortJapaneseWords = japaneseWords.filter(w => w.length <= 5)
 
   ctx.font = `${fontSize}px "Fira Code", "Consolas", "Monaco", "Courier New", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif`
 
+  // 计算网格行列数
   cols = Math.ceil(canvas.width / cellWidth)
   rows = Math.ceil(canvas.height / cellHeight)
 
+  // 初始化网格映射表和单元格数组
   screenGridMap = Array(rows).fill().map(() => Array(cols).fill(false))
   gridCells = Array(rows).fill().map(() => Array(cols).fill(null))
 
   let wordIdCounter = 0
 
+  // 尝试在指定位置放置单词
   function placeWord(text, direction, startCol, startRow) {
     if (!canPlaceAt(startCol, startRow, direction, text, ctx)) {
       return false
@@ -182,6 +193,7 @@ function initMatrix() {
     return true
   }
 
+  // 根据方向获取随机文本
   function getRandomText(direction) {
     if (direction === 'vertical') {
       return Math.random() < 0.5 
@@ -194,10 +206,12 @@ function initMatrix() {
     }
   }
 
+  // 获取随机方向，横向概率更高以便填满屏幕
   function getRandomDirection() {
     return Math.random() < 0.4 ? 'vertical' : 'horizontal' // 稍微增加一点横向比例，更容易填满
   }
 
+  // 获取随机字符
   function getRandomChar() {
     const text = getRandomText('horizontal')
     return text[Math.floor(Math.random() * text.length)]
@@ -206,6 +220,7 @@ function initMatrix() {
   // 【关键修改】：移除了瘦弱的标点，只用最硬核的字符填缝
   const denseFillers = ['0', '1', 'Z', 'X', 'Y', 'E', 'F', 'L', 'T']
 
+  // 遍历所有格子，尝试放置单词或字符
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       if (!screenGridMap[row][col]) {
@@ -241,28 +256,35 @@ function initMatrix() {
   draw()
 }
 
+// 绘制每一帧的矩阵效果
 function draw() {
   const canvas = matrixCanvas.value
   const ctx = canvas.getContext('2d')
 
+  // 绘制半透明黑色背景，实现淡出效果
   ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
+  // 设置字体样式
   ctx.font = `${fontSize}px "Fira Code", "Consolas", "Monaco", "Courier New", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif`
   ctx.textBaseline = 'top'
   ctx.textAlign = 'left'
 
+  // 计算屏幕中心和当前时间
   const centerX = canvas.width / 2
   const centerY = canvas.height / 2
   const currentTime = Date.now()
 
+  // 获取当前鼠标悬停的单词
   let currentHoveredWordId = null
   let currentHoveredWordDirection = null
 
+  // 检查鼠标是否在画布范围内
   if (mouseX >= 0 && mouseX <= canvas.width && mouseY >= 0 && mouseY <= canvas.height) {
     const col = Math.floor(mouseX / cellWidth)
     const row = Math.floor(mouseY / cellHeight)
 
+    // 获取鼠标位置对应的格子
     if (row >= 0 && row < rows && col >= 0 && col < cols) {
       const cell = gridCells[row][col]
       if (cell && cell.wordId !== null) {
@@ -272,14 +294,17 @@ function draw() {
     }
   }
 
+  // 更新悬停单词列表
   if (currentHoveredWordId !== null) {
     const existingIndex = hoveredWords.findIndex(w => w.wordId === currentHoveredWordId)
     if (existingIndex !== -1) {
+      // 更新已存在的悬停单词
       hoveredWords[existingIndex].lastHoverTime = currentTime
       hoveredWords[existingIndex].direction = currentHoveredWordDirection
       const word = hoveredWords.splice(existingIndex, 1)[0]
       hoveredWords.push(word)
     } else {
+      // 添加新的悬停单词
       hoveredWords.push({
         wordId: currentHoveredWordId,
         direction: currentHoveredWordDirection,
@@ -288,8 +313,10 @@ function draw() {
     }
   }
 
+  // 移除超过3秒的悬停单词
   hoveredWords = hoveredWords.filter(w => currentTime - w.lastHoverTime < 3000)
 
+  // 遍历所有格子并绘制字符
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const cell = gridCells[row][col]
@@ -298,9 +325,11 @@ function draw() {
       const x = col * cellWidth
       const y = row * cellHeight
 
+      // 计算距离屏幕中心的距离，用于边缘淡出效果
       const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2))
       let fadeFactor = Math.max(0, Math.min(1, (dist - 180) / 270))
 
+      // 计算发光强度
       let glowIntensity = 0
 
       for (const hoveredWord of hoveredWords) {
@@ -316,10 +345,12 @@ function draw() {
         }
       }
 
+      // 计算最终透明度
       const baseOpacity = 0.0375
       const maxOpacity = 1.0
       const opacity = (baseOpacity + glowIntensity * (maxOpacity - baseOpacity)) * fadeFactor
 
+      // 绘制字符，带发光效果
       ctx.shadowBlur = glowIntensity * 20
       ctx.shadowColor = '#00ff00'
       ctx.fillStyle = `rgba(0, 255, 0, ${opacity})`
@@ -328,6 +359,7 @@ function draw() {
     }
   }
 
+  // 请求下一帧动画
   animationId = requestAnimationFrame(draw)
 }
 
