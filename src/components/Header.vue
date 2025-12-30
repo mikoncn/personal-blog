@@ -33,9 +33,6 @@
 </script>
 
 <style scoped>
-/* 引入机械感字体 */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rajdhani:wght@600;700&display=swap');
-
 .cyber-matrix {
   /* === 黑绿配色系统 === */
   --matrix-green: #00ff00;      /* 主荧光绿 */

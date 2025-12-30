@@ -18,11 +18,6 @@ import MatrixRain from './components/MatrixRain.vue'
 </template>
 
 <style>
-/* 导入 Google Fonts 字体库 */
-/* Orbitron：科技感字体，用于标题和强调文本 */
-/* Rajdhani：现代无衬线字体，用于正文和一般文本 */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
-
 /* 全局扫描线效果：在页面背景上创建细微的绿色水平线条，增强赛博朋克氛围 */
 body::before {
   content: '';

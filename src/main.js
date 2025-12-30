@@ -26,44 +26,4 @@ window.copyCode = async function(button) {
   }
 }
 
-window.checkHighlightStyles = function() {
-  const testElement = document.createElement('div')
-  testElement.className = 'markdown-content'
-  testElement.innerHTML = '<span class="hljs-keyword">test</span>'
-  document.body.appendChild(testElement)
-  
-  const computedStyle = window.getComputedStyle(testElement.querySelector('.hljs-keyword'))
-  console.log('🎨 [Style Check] hljs-keyword color:', computedStyle.color)
-  console.log('🎨 [Style Check] Expected: rgb(198, 120, 221) (#c678dd)')
-  
-  document.body.removeChild(testElement)
-}
-
-window.checkCodeBlockStyles = function() {
-  const codeBlocks = document.querySelectorAll('.markdown-content pre code')
-  console.log('🔍 [Code Block Check] Found', codeBlocks.length, 'code blocks')
-  
-  codeBlocks.forEach((codeBlock, index) => {
-    const spans = codeBlock.querySelectorAll('span')
-    console.log(`🔍 [Code Block ${index}] Found ${spans.length} span elements`)
-    
-    if (spans.length > 0) {
-      const firstSpan = spans[0]
-      const className = firstSpan.className
-      const computedStyle = window.getComputedStyle(firstSpan)
-      console.log(`🔍 [Code Block ${index}] First span class: "${className}"`)
-      console.log(`🔍 [Code Block ${index}] First span color: ${computedStyle.color}`)
-    }
-  })
-}
-
 createApp(App).use(router).mount('#app')
-
-setTimeout(() => {
-  console.log('🔧 [Debug] Checking highlight.js styles...')
-  window.checkHighlightStyles()
-  setTimeout(() => {
-    console.log('🔧 [Debug] Checking code block styles...')
-    window.checkCodeBlockStyles()
-  }, 500)
-}, 1000)
