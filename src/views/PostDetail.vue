@@ -5,7 +5,6 @@ import { getPostById } from '../services/postService'
 import { supabase } from '../utils/supabase'
 import { formatDate } from '../utils/dateFormatter'
 import { renderMarkdown } from '../utils/markdown'
-import '../assets/markdown.css'
 import Header from '../components/Header.vue'
 import Footer from '../components/Footer.vue'
 
@@ -70,6 +69,49 @@ onMounted(async () => {
     loading.value = false
     console.log('⚔️ [帝国防卫军日志] 装载程序结束，战斗准备就绪')
   }
+
+  setTimeout(() => {
+    console.log('🎨 [颜色调试] 开始检查代码块样式...')
+    const codeBlocks = document.querySelectorAll('.markdown-content pre code')
+    console.log(`📦 [颜色调试] 找到 ${codeBlocks.length} 个代码块`)
+    
+    const allClasses = new Set()
+    const classColors = new Map()
+    
+    codeBlocks.forEach((codeBlock, index) => {
+      const spans = codeBlock.querySelectorAll('span')
+      console.log(`📦 [颜色调试] 代码块 ${index + 1}: 找到 ${spans.length} 个 span 元素`)
+      
+      spans.forEach(span => {
+        const classes = span.className.split(' ').filter(c => c)
+        classes.forEach(cls => {
+          allClasses.add(cls)
+          const computedStyle = window.getComputedStyle(span)
+          const color = computedStyle.color
+          if (!classColors.has(cls)) {
+            classColors.set(cls, color)
+          }
+        })
+      })
+    })
+    
+    console.log('\n🎨 [颜色调试] 所有检测到的类名和颜色:')
+    const sortedClasses = Array.from(allClasses).sort()
+    sortedClasses.forEach(cls => {
+      const color = classColors.get(cls)
+      console.log(`   .${cls} → ${color}`)
+    })
+    
+    console.log(`\n📊 [颜色调试] 统计: 总类名数 ${allClasses.size}, 总代码块数 ${codeBlocks.length}`)
+    
+    console.log('\n⚠️ [颜色调试] 检查可能的颜色问题:')
+    sortedClasses.forEach(cls => {
+      const color = classColors.get(cls)
+      if (color === 'rgb(171, 178, 191)' || color === '#abb2bf') {
+        console.log(`   ⚠️ .${cls} 使用了默认灰色 (${color})`)
+      }
+    })
+  }, 500)
 })
 </script>
 
@@ -479,7 +521,6 @@ onMounted(async () => {
   color: #cccccc;
   font-family: 'Rajdhani', 'Segoe UI', sans-serif;
   font-size: 1.1rem;
-  line-height: 2;
   letter-spacing: 0.5px;
 }
 

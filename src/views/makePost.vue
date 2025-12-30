@@ -3,7 +3,6 @@ import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '../utils/supabase'
 import { renderMarkdown } from '../utils/markdown'
-import '../assets/markdown.css'
 
 const router = useRouter()
 const route = useRoute()

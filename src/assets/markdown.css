@@ -1,7 +1,18 @@
 .markdown-content {
   color: #e0e0e0;
-  line-height: 1.8;
   font-size: 16px;
+}
+
+.markdown-content p,
+.markdown-content ul,
+.markdown-content ol,
+.markdown-content blockquote,
+.markdown-content table {
+  line-height: 1.8;
+}
+
+.markdown-content .hljs-test {
+  color: #ff0000 !important;
 }
 
 .markdown-content h1,
@@ -89,7 +100,7 @@
   color: #00ff00;
 }
 
-.markdown-content code {
+.markdown-content :not(pre) > code {
   background: rgba(0, 255, 0, 0.1);
   color: #00ff00;
   padding: 2px 6px;
@@ -98,54 +109,535 @@
   font-size: 0.9em;
 }
 
-.markdown-content pre {
-  background: rgba(0, 20, 0, 0.8);
-  border: 1px solid #00ff00;
-  border-radius: 5px;
-  padding: 1em;
+.markdown-content pre.code-block-wrapper {
+  background: rgba(0, 10, 0, 0.9) !important;
+  border: 1px solid #003300;
+  border-radius: 4px;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.1);
+  padding: 1.5em !important;
   overflow-x: auto;
   margin: 1.5em 0;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.markdown-content pre.code-block-wrapper:hover {
+  box-shadow: 0 0 25px rgba(0, 255, 0, 0.3);
+  border-color: #00ff00;
+}
+
+.markdown-content pre.code-block-wrapper::before {
+  content: 'CODE';
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 0.7rem;
+  color: #00ff00;
+  font-family: 'Orbitron', monospace;
+  letter-spacing: 2px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.markdown-content pre.code-block-wrapper .copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  padding: 6px 16px;
+  font-size: 0.75rem;
+  font-family: 'Orbitron', monospace;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  z-index: 10;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.markdown-content pre.code-block-wrapper .copy-btn:hover {
+  background: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+}
+
+.markdown-content pre.code-block-wrapper .copy-btn.copied {
+  background: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+}
+
+.markdown-content pre {
+  background: rgba(0, 10, 0, 0.9) !important;
+  border: 1px solid #003300;
+  border-radius: 4px;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.1);
+  padding: 1.5em !important;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.markdown-content pre:hover {
+  box-shadow: 0 0 25px rgba(0, 255, 0, 0.3);
+  border-color: #00ff00;
+}
+
+.markdown-content pre::before {
+  content: 'CODE';
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 0.7rem;
+  color: #00ff00;
+  font-family: 'Orbitron', monospace;
+  letter-spacing: 2px;
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .markdown-content pre code {
   background: transparent;
   padding: 0;
-  color: #00ff00;
-  font-size: 14px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+  line-height: 0.7;
+  color: inherit;
 }
 
 .markdown-content .hljs {
-  background: transparent;
-  color: #00ff00;
+  background: transparent !important;
+  padding: 0 !important;
+  line-height: 0.7 !important;
+}
+
+.markdown-content .hljs-comment,
+.markdown-content .hljs-quote {
+  color: #5c6370 !important;
+  font-style: italic !important;
 }
 
 .markdown-content .hljs-keyword,
-.markdown-content .hljs-title,
-.markdown-content .hljs-name,
-.markdown-content .hljs-tag {
-  color: #00ff00;
-  font-weight: bold;
-}
-
-.markdown-content .hljs-string,
-.markdown-content .hljs-attr,
-.markdown-content .hljs-value {
-  color: #7fff00;
-}
-
-.markdown-content .hljs-comment {
-  color: #4caf50;
-  font-style: italic;
+.markdown-content .hljs-selector-tag,
+.markdown-content .hljs-subst {
+  color: #c678dd !important;
+  font-weight: bold !important;
 }
 
 .markdown-content .hljs-number,
-.markdown-content .hljs-literal {
-  color: #00ffff;
+.markdown-content .hljs-literal,
+.markdown-content .hljs-variable,
+.markdown-content .hljs-template-variable,
+.markdown-content .hljs-tag .hljs-attr {
+  color: #d19a66 !important;
+}
+
+.markdown-content .hljs-string,
+.markdown-content .hljs-doctag {
+  color: #98c379 !important;
+}
+
+.markdown-content .hljs-title,
+.markdown-content .hljs-section,
+.markdown-content .hljs-selector-id {
+  color: #61afef !important;
+  font-weight: bold !important;
+}
+
+.markdown-content .hljs-type,
+.markdown-content .hljs-class .hljs-title {
+  color: #e5c07b !important;
+}
+
+.markdown-content .hljs-tag,
+.markdown-content .hljs-name,
+.markdown-content .hljs-attribute {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-regexp,
+.markdown-content .hljs-link {
+  color: #56b6c2 !important;
+}
+
+.markdown-content .hljs-symbol,
+.markdown-content .hljs-bullet {
+  color: #61afef !important;
+}
+
+.markdown-content .hljs-built_in,
+.markdown-content .hljs-builtin-name {
+  color: #e6c07b !important;
+}
+
+.markdown-content .hljs-meta {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-deletion {
+  background: #f14c4c !important;
+  color: #ffffff !important;
+}
+
+.markdown-content .hljs-addition {
+  background: #98c379 !important;
+  color: #ffffff !important;
+}
+
+.markdown-content .hljs-emphasis {
+  font-style: italic !important;
+}
+
+.markdown-content .hljs-strong {
+  font-weight: bold !important;
+}
+
+.markdown-content .hljs-params {
+  color: #d19a66 !important;
 }
 
 .markdown-content .hljs-function {
-  color: #ffff00;
+  color: #61afef !important;
+}
+
+.markdown-content .hljs-property {
+  color: #d19a66 !important;
+}
+
+.markdown-content .hljs-operator {
+  color: #56b6c2 !important;
+}
+
+.markdown-content .hljs-punctuation {
+  color: #abb2bf !important;
+}
+
+.markdown-content .hljs-class,
+.markdown-content .hljs-title.class_ {
+  color: #e5c07b !important;
+}
+
+.markdown-content .hljs-title.function_ {
+  color: #61afef !important;
+}
+
+.markdown-content .hljs-attr {
+  color: #d19a66 !important;
+}
+
+.markdown-content .hljs-selector-class {
+  color: #e5c07b !important;
+}
+
+.markdown-content .hljs-selector-attr {
+  color: #d19a66 !important;
+}
+
+.markdown-content .hljs-selector-pseudo {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-name {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-tag {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-variable.language_ {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-variable.constant_ {
+  color: #d19a66 !important;
+}
+
+.markdown-content .hljs-boolean {
+  color: #d19a66 !important;
+}
+
+.markdown-content .hljs-null {
+  color: #d19a66 !important;
+}
+
+.markdown-content .hljs-undefined {
+  color: #d19a66 !important;
+}
+
+.markdown-content .hljs-this {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-super {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-new {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-extends {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-import {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-export {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-from {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-as {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-default {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-async {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-await {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-return {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-throw {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-try {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-catch {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-finally {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-if {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-else {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-for {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-while {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-do {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-switch {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-case {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-break {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-continue {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-const {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-let {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-var {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-interface {
+  color: #e5c07b !important;
+}
+
+.markdown-content .hljs-typeof {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-instanceof {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-in {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-of {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-delete {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-static {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-public {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-private {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-protected {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-get {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-set {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-constructor {
+  color: #61afef !important;
+}
+
+.markdown-content .hljs-module {
+  color: #e5c07b !important;
+}
+
+.markdown-content .hljs-namespace {
+  color: #e5c07b !important;
+}
+
+.markdown-content .hljs-exception {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-error {
+  color: #f14c4c !important;
+}
+
+.markdown-content .hljs-label {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-id {
+  color: #61afef !important;
+}
+
+.markdown-content .hljs-pseudo-class {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-pseudo-element {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-important {
+  color: #e06c75 !important;
+  font-weight: bold !important;
+}
+
+.markdown-content .hljs-bold {
+  font-weight: bold !important;
+  color: #61afef !important;
+}
+
+.markdown-content .hljs-italic {
+  font-style: italic !important;
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-decorator {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-doc-tag {
+  color: #98c379 !important;
+}
+
+.markdown-content .hljs-annotation {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-char {
+  color: #98c379 !important;
+}
+
+.markdown-content .hljs-dispatch {
+  color: #61afef !important;
+}
+
+.markdown-content .hljs-void {
+  color: #d19a66 !important;
+}
+
+.markdown-content .hljs-yield {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-implements {
+  color: #e06c75 !important;
+}
+
+.markdown-content .hljs-enum {
+  color: #e5c07b !important;
+}
+
+.markdown-content .hljs-struct {
+  color: #e5c07b !important;
+}
+
+.markdown-content .hljs-union {
+  color: #e5c07b !important;
+}
+
+.markdown-content .hljs-typedef {
+  color: #e5c07b !important;
+}
+
+.markdown-content .hljs-readonly {
+  color: #c678dd !important;
+}
+
+.markdown-content .hljs-destructor {
+  color: #61afef !important;
+}
+
+.markdown-content .hljs-constant {
+  color: #d19a66 !important;
 }
 
 .markdown-content table {
