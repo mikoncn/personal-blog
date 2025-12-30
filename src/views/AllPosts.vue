@@ -43,15 +43,29 @@
           </button>
         </div>
         
-        <!-- 分类标签切换 -->
-        <div class="category-tabs">
+        <!-- 标签筛选 -->
+        <div class="tag-filter">
           <button 
-            v-for="category in categories" 
-            :key="category"
-            :class="['tab-button', { active: selectedCategory === category }]"
-            @click="selectedCategory = category"
+            v-for="tag in visibleTags" 
+            :key="tag"
+            :class="['tag-filter-btn', { active: selectedTag === tag }]"
+            @click="selectedTag = tag"
           >
-            {{ category }}
+            {{ tag === 'All' ? 'ALL' : tag }}
+          </button>
+          <button 
+            v-if="allTags.length > 5 && !showAllTags"
+            class="tag-filter-btn more-tags-btn"
+            @click="showAllTags = true"
+          >
+            更多标签
+          </button>
+          <button 
+            v-if="showAllTags"
+            class="tag-filter-btn more-tags-btn"
+            @click="showAllTags = false"
+          >
+            收起
           </button>
         </div>
       </div>
@@ -134,7 +148,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 // 导入Vue Router用于页面导航
 import { useRouter } from 'vue-router'
 // 导入数据服务
-import { getAllPosts, getAllCategories } from '../services/postService'
+import { getAllPosts, getAllTags } from '../services/postService'
 import { formatDate } from '../utils/dateFormatter'
 
 // 初始化路由实例
@@ -157,18 +171,27 @@ const loading = ref(true)
 const error = ref(null)
 
 // 所有可用的分类选项
-const categories = ref(['All'])
+const allTags = ref([])
+const selectedTag = ref('All')
+const showAllTags = ref(false)
+
+const visibleTags = computed(() => {
+  if (showAllTags.value) {
+    return ['All', ...allTags.value]
+  }
+  return ['All', ...allTags.value.slice(0, 5)]
+})
 
 // 计算属性：根据搜索关键词和分类筛选文章
 const filteredPosts = computed(() => {
   let result = posts.value
   
-  // 按分类筛选
-  if (selectedCategory.value !== 'All') {
-    result = result.filter(post => post.category === selectedCategory.value)
+  if (selectedTag.value !== 'All') {
+    result = result.filter(post => 
+      post.tags && post.tags.includes(selectedTag.value)
+    )
   }
   
-  // 按搜索关键词筛选（匹配标题、摘要、分类和标签）
   if (activeSearchQuery.value.trim()) {
     const query = activeSearchQuery.value.toLowerCase()
     result = result.filter(post => 
@@ -195,8 +218,8 @@ const paginatedPosts = computed(() => {
 })
 
 // 监听分类变化，重置到第一页
-watch(selectedCategory, () => {
-  console.log('⚔️ [帝国防卫军日志] 战术分类切换:', selectedCategory.value)
+watch(selectedTag, () => {
+  console.log('⚔️ [帝国防卫军日志] 战术标签切换:', selectedTag.value)
   currentPage.value = 1
   console.log('⚔️ [帝国防卫军日志] 战术坐标重置为 1')
 })
@@ -244,15 +267,15 @@ function nextPage() {
 onMounted(async () => {
   console.log('⚔️ [帝国防卫军日志] 战术小队已部署，开始加载数据...')
   try {
-    console.log('⚔️ [帝国防卫军日志] 并行请求圣典目录和分类目录...')
-    const [postsData, categoriesData] = await Promise.all([
+    console.log('⚔️ [帝国防卫军日志] 并行请求圣典目录和标签目录...')
+    const [postsData, tagsData] = await Promise.all([
       getAllPosts(),
-      getAllCategories()
+      getAllTags()
     ])
     posts.value = postsData
-    categories.value = ['All', ...categoriesData]
-    console.log('⚔️ [帝国防卫军日志] 数据装载完成，圣典数:', posts.value.length, '分类数:', categories.value.length)
-    console.log('⚔️ [帝国防卫军日志] 分类目录:', categories.value)
+    allTags.value = tagsData
+    console.log('⚔️ [帝国防卫军日志] 数据装载完成，圣典数:', posts.value.length, '标签数:', allTags.value.length)
+    console.log('⚔️ [帝国防卫军日志] 标签目录:', allTags.value)
   } catch (err) {
     error.value = err.message
     console.error('☠️ [异端警告] 数据装载失败！', err)
@@ -562,15 +585,18 @@ onMounted(async () => {
   stroke: #0a0a0a;
 }
 
-/* 分类标签容器 */
-.category-tabs {
+/* 标签筛选容器 */
+.tag-filter {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0, 255, 0, 0.3);
 }
 
-/* 分类标签按钮样式 */
-.tab-button {
+/* 标签筛选按钮样式 */
+.tag-filter-btn {
   padding: 15px 40px;
   background-color: transparent;
   border: 2px solid #00ff00;
@@ -589,8 +615,8 @@ onMounted(async () => {
   transform: skewX(-3deg);
 }
 
-/* 标签按钮悬停扫描效果 */
-.tab-button::before {
+/* 标签筛选按钮扫描效果 */
+.tag-filter-btn::before {
   content: '';
   position: absolute;
   top: 0;
@@ -602,25 +628,48 @@ onMounted(async () => {
 }
 
 /* 悬停时扫描线移动 */
-.tab-button:hover::before {
+.tag-filter-btn:hover::before {
   left: 100%;
 }
 
-/* 标签按钮悬停效果 */
-.tab-button:hover {
+/* 标签筛选按钮悬停效果 */
+.tag-filter-btn:hover {
   background-color: #00ff00;
   color: #0a0a0a;
   box-shadow: 0 0 30px #00ff00;
   transform: skewX(-3deg) scale(1.1);
 }
 
-/* 激活的标签按钮样式 */
-.tab-button.active {
+/* 激活的标签筛选按钮样式 */
+.tag-filter-btn.active {
   background-color: #00ff00;
   color: #0a0a0a;
   box-shadow: 0 0 30px #00ff00;
   text-shadow: none;
   transform: skewX(-3deg) scale(1.1);
+}
+
+/* 更多标签按钮样式 */
+.more-tags-btn {
+  border-color: #00ffff !important;
+  color: #00ffff !important;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5) !important;
+}
+
+/* 更多标签按钮悬停效果 */
+.more-tags-btn:hover {
+  background-color: #00ffff !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 0 30px #00ffff !important;
+  text-shadow: none !important;
+}
+
+/* 更多标签按钮激活效果 */
+.more-tags-btn.active {
+  background-color: #00ffff !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 0 30px #00ffff !important;
+  text-shadow: none !important;
 }
 
 /* 文章卡片网格布局 */

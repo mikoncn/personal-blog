@@ -124,15 +124,14 @@ export async function getAllCategories() {
 export async function getAllTags() {
   try {
     const { data, error } = await supabase
-      .from('posts')
-      .select('tags')
+      .from('tag_usage_ranking')
+      .select('name')
     
     if (error) throw error
     
-    // 提取所有标签并去重
-    const allTags = data.flatMap(post => post.tags || [])
-    const uniqueTags = [...new Set(allTags)].sort()
-    return uniqueTags
+    const tags = data.map(tag => tag.name)
+    console.log('✨ [神圣机械日志] 荣耀归于机械之神！成功检索标签目录（按使用次数排序）:', tags)
+    return tags
   } catch (error) {
     console.error('获取标签列表失败:', error)
     return []

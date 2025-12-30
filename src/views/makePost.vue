@@ -29,6 +29,106 @@ const renderedContent = computed(() => {
   return renderMarkdown(formData.value.content)
 })
 
+const allTags = ref([])
+const selectedTags = ref([])
+const tagSearch = ref('')
+const showTagDropdown = ref(false)
+const addingNewTag = ref(false)
+
+async function loadAllTags() {
+  try {
+    const { data, error } = await supabase
+      .from('tag_usage_ranking')
+      .select('name')
+
+    if (error) throw error
+    
+    allTags.value = data.map(tag => tag.name)
+    console.log('⚙️ [神圣机械日志] 标签库加载成功（按使用次数排序）:', allTags.value)
+  } catch (error) {
+    console.error('☠️ [异端警告] 加载标签库失败！', error)
+  }
+}
+
+const filteredTags = computed(() => {
+  const search = tagSearch.value.toLowerCase().trim()
+  if (!search) {
+    return allTags.value.filter(tag => !selectedTags.value.includes(tag))
+  }
+  return allTags.value
+    .filter(tag => 
+      tag.toLowerCase().includes(search) && 
+      !selectedTags.value.includes(tag)
+    )
+})
+
+const canAddNewTag = computed(() => {
+  const search = tagSearch.value.trim()
+  return search.length > 0 && 
+         !allTags.value.includes(search) && 
+         !selectedTags.value.includes(search)
+})
+
+function toggleTag(tag) {
+  const index = selectedTags.value.indexOf(tag)
+  if (index > -1) {
+    selectedTags.value.splice(index, 1)
+  } else {
+    selectedTags.value.push(tag)
+  }
+  tagSearch.value = ''
+}
+
+async function addNewTag() {
+  const newTag = tagSearch.value.trim()
+  if (!newTag || allTags.value.includes(newTag)) return
+
+  addingNewTag.value = true
+  try {
+    const { error } = await supabase
+      .from('tags')
+      .insert([{ name: newTag }])
+
+    if (error) throw error
+
+    allTags.value.push(newTag)
+    selectedTags.value.push(newTag)
+    tagSearch.value = ''
+    console.log('✨ [神圣机械日志] 新标签已注入:', newTag)
+  } catch (error) {
+    console.error('☠️ [异端警告] 添加新标签失败！', error)
+    alert('添加标签失败：' + error.message)
+  } finally {
+    addingNewTag.value = false
+  }
+}
+
+function removeTag(tag) {
+  const index = selectedTags.value.indexOf(tag)
+  if (index > -1) {
+    selectedTags.value.splice(index, 1)
+  }
+}
+
+function handleTagInputFocus() {
+  showTagDropdown.value = true
+}
+
+function handleTagInputBlur() {
+  setTimeout(() => {
+    showTagDropdown.value = false
+  }, 200)
+}
+
+watch(selectedTags, (newTags) => {
+  formData.value.tags = newTags.join(', ')
+}, { deep: true })
+
+onMounted(() => {
+  loadPostData()
+  loadAllTags()
+})
+
 async function loadPostData() {
   if (!isEditMode.value) return
 
@@ -54,6 +154,7 @@ async function loadPostData() {
         content: data.content || '',
         tags: Array.isArray(data.tags) ? data.tags.join(', ') : ''
       }
+      selectedTags.value = Array.isArray(data.tags) ? [...data.tags] : []
       console.log('✨ [神圣机械日志] 圣典加载成功:', formData.value)
     }
   } catch (error) {
@@ -63,10 +164,6 @@ async function loadPostData() {
     messageType.value = 'error'
   }
 }
-
-onMounted(() => {
-  loadPostData()
-})
 
 watch(() => formData.value.content, () => {
   syncScroll()
@@ -172,10 +269,7 @@ async function handleSubmit() {
   message.value = ''
 
   try {
-    const tagsArray = formData.value.tags
-      .split(',')
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0)
+    const tagsArray = [...selectedTags.value]
 
     if (isEditMode.value) {
       const postId = parseInt(route.params.id)
@@ -435,13 +529,59 @@ async function handleSubmit() {
             <span class="label-icon">🏷️</span>
             标签
           </label>
-          <input 
-            v-model="formData.tags" 
-            type="text" 
-            class="form-input" 
-            placeholder="输入标签，用逗号分隔（如：Vue3, Supabase, Web3）..."
-          />
-          <p class="form-hint">多个标签请用逗号分隔</p>
+          
+          <div class="tag-selector">
+            <div class="selected-tags">
+              <span 
+                v-for="tag in selectedTags" 
+                :key="tag" 
+                class="tag-chip"
+                @click="removeTag(tag)"
+              >
+                {{ tag }}
+                <span class="tag-remove">×</span>
+              </span>
+            </div>
+            
+            <div class="tag-input-container">
+              <input 
+                v-model="tagSearch" 
+                type="text" 
+                class="tag-input"
+                placeholder="搜索或输入新标签..."
+                @focus="handleTagInputFocus"
+                @blur="handleTagInputBlur"
+              />
+              <button 
+                v-if="canAddNewTag && !addingNewTag"
+                @click="addNewTag"
+                class="add-tag-btn"
+                type="button"
+              >
+                + 添加
+              </button>
+              <span v-else-if="addingNewTag" class="adding-tag-text">添加中...</span>
+            </div>
+            
+            <div v-if="showTagDropdown && (filteredTags.length > 0 || canAddNewTag)" class="tag-dropdown">
+              <div 
+                v-for="tag in filteredTags" 
+                :key="tag" 
+                class="tag-option"
+                @mousedown="toggleTag(tag)"
+              >
+                {{ tag }}
+              </div>
+              <div 
+                v-if="canAddNewTag" 
+                class="tag-option tag-option-new"
+                @mousedown="addNewTag"
+              >
+                + 创建新标签 "{{ tagSearch }}"
+              </div>
+            </div>
+          </div>
+          <p class="form-hint">点击标签选择，或输入新标签后点击"添加"</p>
         </div>
 
         <div class="form-actions">
@@ -746,6 +886,204 @@ async function handleSubmit() {
   color: rgba(0, 255, 0, 0.5);
   margin-top: 5px;
   font-family: 'Rajdhani', sans-serif;
+}
+
+.tag-selector {
+  position: relative;
+  width: 100%;
+}
+
+.selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  min-height: 32px;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(0, 255, 0, 0.15);
+  border: 1px solid #00ff00;
+  border-radius: 4px;
+  color: #00ff00;
+  font-size: 14px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  animation: tagGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes tagGlow {
+  0% {
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+  }
+}
+
+.tag-chip:hover {
+  background: rgba(255, 0, 0, 0.2);
+  border-color: #ff3333;
+  color: #ff3333;
+  box-shadow: 0 0 15px rgba(255, 51, 51, 0.5);
+}
+
+.tag-chip::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.tag-chip:hover::before {
+  left: 100%;
+}
+
+.tag-remove {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: bold;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+}
+
+.tag-chip:hover .tag-remove {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.tag-input-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  position: relative;
+}
+
+.tag-input {
+  flex: 1;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid rgba(0, 255, 0, 0.3);
+  border-radius: 6px;
+  color: #00ff00;
+  font-size: 14px;
+  font-family: 'Rajdhani', sans-serif;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.tag-input:focus {
+  border-color: #00ff00;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+}
+
+.tag-input::placeholder {
+  color: rgba(0, 255, 0, 0.4);
+}
+
+.add-tag-btn {
+  padding: 12px 20px;
+  background: rgba(0, 255, 0, 0.1);
+  border: 2px solid #00ff00;
+  border-radius: 6px;
+  color: #00ff00;
+  font-size: 14px;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.add-tag-btn:hover {
+  background: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+}
+
+.adding-tag-text {
+  color: rgba(0, 255, 0, 0.6);
+  font-size: 14px;
+  font-family: 'Rajdhani', sans-serif;
+  white-space: nowrap;
+}
+
+.tag-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 250px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.95);
+  border: 2px solid #00ff00;
+  border-radius: 6px;
+  margin-top: 8px;
+  z-index: 100;
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.tag-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.tag-dropdown::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.tag-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 0, 0.5);
+  border-radius: 4px;
+}
+
+.tag-dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 0, 0.8);
+}
+
+.tag-option {
+  padding: 12px 16px;
+  color: #00ff00;
+  font-size: 14px;
+  font-family: 'Rajdhani', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(0, 255, 0, 0.1);
+}
+
+.tag-option:last-child {
+  border-bottom: none;
+}
+
+.tag-option:hover {
+  background: rgba(0, 255, 0, 0.2);
+  padding-left: 20px;
+  box-shadow: inset 3px 0 0 #00ff00;
+}
+
+.tag-option-new {
+  color: #00ffff;
+  font-weight: 600;
+  border-top: 2px solid rgba(0, 255, 255, 0.3);
+  background: rgba(0, 255, 255, 0.05);
+}
+
+.tag-option-new:hover {
+  background: rgba(0, 255, 255, 0.2);
+  box-shadow: inset 3px 0 0 #00ffff;
 }
 
 .form-actions {
