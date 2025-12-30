@@ -1,6 +1,6 @@
 <template>
   <footer class="footer">
-    <p>© 2024 MIKON BLOG. All rights reserved.</p>
+    <p>© 2026 MIKON BLOG. All rights reserved.</p>
     <div class="social-links">
       <a href="https://github.com/mikoncn" target="_blank" rel="noopener noreferrer" class="social-link">GitHub</a>
       <a href="#" class="social-link">Twitter</a>
@@ -101,6 +101,7 @@ async function copyEmail() {
   font-size: 0.95rem;
   padding: 12px 24px;
   border: 1px solid #00ff00;
+  background: rgba(0, 0, 0, 0.95);
   transition: all 0.3s ease;
   font-weight: 500;
   letter-spacing: 1px;

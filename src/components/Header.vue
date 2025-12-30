@@ -1,21 +1,31 @@
 <template>
-  <header class="header">
-    <h1 class="title">
-      <span class="cyberpunk-logo" data-text="MIKON BLOG">
-        MIKON BLOG
-        <span class="scanline"></span>
-        <span class="electricity"></span>
-        <span class="pixel-overlay"></span>
-        <span class="distortion"></span>
-      </span>
-    </h1>
-    <nav class="nav">
-      <router-link to="/" class="nav-link">首页</router-link>
-      <router-link to="/posts" class="nav-link">文章</router-link>
-      <router-link to="/make-post" class="nav-link">发布</router-link>
-      <router-link to="/posts" class="nav-link">项目</router-link>
-      <router-link to="/posts" class="nav-link">关于</router-link>
-    </nav>
+  <header class="header cyber-matrix">
+    <div class="header-content">
+      <div class="logo-box">
+        <h1 class="glitch-title" data-text="MIKON_BLOG">MIKON_BLOG</h1>
+        <div class="decoration-bar">
+          <span class="jap-text">接続確立</span>
+          <span class="id-code">SYS.ROOT.ACCESS</span>
+        </div>
+      </div>
+
+      <nav class="nav cyber-nav">
+        <router-link to="/" class="cyber-btn" data-text="首页">
+          <span class="btn-inner">首页</span>
+        </router-link>
+        <router-link to="/posts" class="cyber-btn" data-text="文章">
+          <span class="btn-inner">文章</span>
+        </router-link>
+        <router-link to="/make-post" class="cyber-btn" data-text="发布">
+          <span class="btn-inner">发布</span>
+        </router-link>
+        <router-link to="/about" class="cyber-btn" data-text="关于">
+          <span class="btn-inner">关于</span>
+        </router-link>
+      </nav>
+    </div>
+
+    <div class="scan-line"></div>
   </header>
 </template>
 
@@ -23,340 +33,207 @@
 </script>
 
 <style scoped>
-.header {
-  text-align: center;
-  padding: 40px 0;
-  border-bottom: 2px solid #FCEE0A;
-  margin-bottom: 40px;
+/* 引入机械感字体 */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rajdhani:wght@600;700&display=swap');
+
+.cyber-matrix {
+  /* === 黑绿配色系统 === */
+  --matrix-green: #00ff00;      /* 主荧光绿 */
+  --matrix-dark: #003300;       /* 深绿 */
+  --matrix-pale: #ccffcc;       /* 惨白绿（用于高亮） */
+  --matrix-bg-trans: rgba(0, 10, 0, 0.6); /* 半透明黑底 */
+  
   position: relative;
+  padding: 40px 0 30px;
+  /* 背景改为半透明，让代码雨透过来 */
+  background: var(--matrix-bg-trans);
+  /* 增加一个模糊滤镜，让背后的代码雨在 Header 区域稍微模糊一点，提升文字可读性 */
+  backdrop-filter: blur(2px); 
+  margin-bottom: 40px;
+  overflow: visible; /* 允许光效溢出 */
 }
 
-.header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    rgba(0, 0, 0, 0.15),
-    rgba(0, 0, 0, 0.15) 1px,
-    transparent 1px,
-    transparent 2px
-  );
-  pointer-events: none;
-  z-index: 1;
-}
-
-.title {
-  font-size: 3.5rem;
-  margin-bottom: 20px;
-  text-transform: uppercase;
-  letter-spacing: 8px;
-  font-weight: 900;
-  font-family: 'Orbitron', 'Arial Black', 'Impact', sans-serif;
+.header-content {
   position: relative;
   z-index: 2;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
 }
 
-.cyberpunk-logo {
+/* === Logo: 绿色故障核心 === */
+.logo-box {
   position: relative;
-  color: #FCEE0A;
-  text-shadow: 
-    0 0 5px #FCEE0A,
-    0 0 10px #FCEE0A,
-    0 0 20px #FCEE0A,
-    0 0 40px #FCEE0A,
-    0 0 80px #FCEE0A;
-  animation: flicker 3s infinite, glitch-skew 4s infinite;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  letter-spacing: 10px;
-  font-weight: 900;
-  display: inline-block;
-  transform: skewX(-5deg);
-  filter: drop-shadow(0 0 0 transparent);
+  transform: skewX(-10deg);
 }
 
-.cyberpunk-logo::before,
-.cyberpunk-logo::after {
+.glitch-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 4rem;
+  color: var(--matrix-green);
+  margin: 0;
+  line-height: 1;
+  position: relative;
+  /* 绿色发光文字阴影 */
+  text-shadow: 0 0 10px var(--matrix-green);
+}
+
+/* 故障层 1 (深绿错位) */
+.glitch-title::before {
   content: attr(data-text);
   position: absolute;
-  top: 0;
-  left: 0;
+  left: -2px; top: -2px;
   width: 100%;
-  height: 100%;
-  transform: skewX(-5deg);
-}
-
-.cyberpunk-logo::before {
-  color: #FF0040;
-  text-shadow: 
-    0 0 5px #FF0040,
-    0 0 10px #FF0040;
-  animation: glitch-1 2.5s infinite linear alternate-reverse;
-  clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
-  mix-blend-mode: screen;
-}
-
-.cyberpunk-logo::after {
-  color: #00D9FF;
-  text-shadow: 
-    0 0 5px #00D9FF,
-    0 0 10px #00D9FF;
-  animation: glitch-2 2.5s infinite linear alternate-reverse;
-  clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
-  mix-blend-mode: screen;
-}
-
-.cyberpunk-logo .scanline {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(252, 238, 10, 0.2) 50%,
-    transparent 100%
-  );
-  animation: scanline 3s linear infinite;
-  pointer-events: none;
-  transform: skewX(-5deg);
-}
-
-@keyframes flicker {
-  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
-    opacity: 1;
-  }
-  20%, 24%, 55% {
-    opacity: 0.8;
-  }
-}
-
-@keyframes glitch-1 {
-  0% {
-    transform: translate(0) skewX(-5deg);
-  }
-  20% {
-    transform: translate(-2px, 2px) skewX(-3deg);
-  }
-  40% {
-    transform: translate(-2px, -2px) skewX(-7deg);
-  }
-  60% {
-    transform: translate(2px, 2px) skewX(-4deg);
-  }
-  80% {
-    transform: translate(2px, -2px) skewX(-6deg);
-  }
-  100% {
-    transform: translate(0) skewX(-5deg);
-  }
-}
-
-@keyframes glitch-2 {
-  0% {
-    transform: translate(0) skewX(-5deg);
-  }
-  20% {
-    transform: translate(2px, -2px) skewX(-7deg);
-  }
-  40% {
-    transform: translate(2px, 2px) skewX(-3deg);
-  }
-  60% {
-    transform: translate(-2px, -2px) skewX(-6deg);
-  }
-  80% {
-    transform: translate(-2px, 2px) skewX(-4deg);
-  }
-  100% {
-    transform: translate(0) skewX(-5deg);
-  }
-}
-
-@keyframes glitch-skew {
-  0%, 90%, 100% {
-    transform: skewX(-5deg) scaleX(1);
-  }
-  91% {
-    transform: skewX(0deg) scaleX(1.05);
-  }
-  92% {
-    transform: skewX(-10deg) scaleX(0.95);
-  }
-  93% {
-    transform: skewX(-2deg) scaleX(1.02);
-  }
-  94% {
-    transform: skewX(-8deg) scaleX(0.98);
-  }
-}
-
-@keyframes scanline {
-  0% {
-    transform: translateY(-100%) skewX(-5deg);
-  }
-  100% {
-    transform: translateY(100%) skewX(-5deg);
-  }
-}
-
-.cyberpunk-logo .pixel-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent 0px,
-    transparent 3px,
-    rgba(252, 238, 10, 0.08) 3px,
-    rgba(252, 238, 10, 0.08) 4px
-  ),
-  repeating-linear-gradient(
-    90deg,
-    transparent 0px,
-    transparent 3px,
-    rgba(252, 238, 10, 0.08) 3px,
-    rgba(252, 238, 10, 0.08) 4px
-  );
-  pointer-events: none;
-  animation: pixelate 0.5s steps(4) infinite;
-  opacity: 0;
-  transform: skewX(-5deg);
-}
-
-.cyberpunk-logo .distortion {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    45deg,
-    transparent 40%,
-    rgba(252, 238, 10, 0.2) 50%,
-    transparent 60%
-  );
-  pointer-events: none;
-  animation: distort 3s ease-in-out infinite;
-  opacity: 0;
-  transform: skewX(-5deg);
-}
-
-@keyframes pixelate {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(1) skewX(-5deg);
-  }
-  5% {
-    opacity: 1;
-    transform: scale(1.02) skewX(-5deg);
-  }
-  10% {
-    opacity: 0;
-    transform: scale(0.98) skewX(-5deg);
-  }
-}
-
-@keyframes distort {
-  0%, 100% {
-    opacity: 0;
-    transform: translateX(-100%) skewX(-5deg);
-  }
-  10% {
-    opacity: 0.6;
-    transform: translateX(0%) skewX(5deg);
-  }
-  20% {
-    opacity: 0;
-    transform: translateX(100%) skewX(-15deg);
-  }
-}
-
-.nav {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  flex-wrap: wrap;
-  position: relative;
-  z-index: 2;
-}
-
-.nav-link {
-  color: #00ff00;
-  text-decoration: none;
-  font-size: 1rem;
-  padding: 12px 24px;
-  border: 1px solid #00ff00;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  font-weight: 500;
-  font-family: 'Orbitron', 'Rajdhani', sans-serif;
-  border-radius: 4px;
-  position: relative;
+  color: var(--matrix-dark);
+  background: transparent;
   overflow: hidden;
-  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
+  opacity: 0.8;
+}
+
+/* 故障层 2 (惨白绿错位) */
+.glitch-title::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 2px; top: 2px;
+  width: 100%;
+  color: var(--matrix-pale);
+  background: transparent;
+  overflow: hidden;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  animation: glitch-anim-2 3.5s infinite linear alternate-reverse;
+  mix-blend-mode: color-dodge;
+}
+
+/* 装饰小字 */
+.decoration-bar {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--matrix-green);
+  border-top: 1px solid var(--matrix-green);
+  padding-top: 2px;
+  opacity: 0.8;
+}
+
+.jap-text { letter-spacing: 2px; }
+
+/* === 导航: 绿色晶体切片 === */
+.cyber-nav {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cyber-btn {
+  position: relative;
+  text-decoration: none;
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--matrix-green);
+  font-size: 1.1rem;
+  padding: 15px 40px;
+  
+  background-color: transparent;
+  border: 2px solid var(--matrix-green);
+  
   transform: skewX(-3deg);
-  display: inline-block;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  letter-spacing: 3px;
+  border-radius: 6px;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
 }
 
-.nav-link.router-link-active {
-  background-color: #00ff00;
-  color: #0a0a0a;
-  box-shadow: 0 0 20px #00ff00;
-}
-
-.nav-link::before {
+.cyber-btn::before {
   content: '';
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.4), transparent);
   transition: left 0.5s ease;
 }
 
-.nav-link:hover::before {
+.cyber-btn:hover::before {
   left: 100%;
 }
 
-.nav-link:hover {
-  background-color: #00ff00;
-  color: #0a0a0a;
-  box-shadow: 0 0 20px #00ff00;
+.cyber-btn:hover {
+  background-color: var(--matrix-green);
+  color: #000;
+  box-shadow: 0 0 30px var(--matrix-green);
+  transform: skewX(-3deg) scale(1.05);
+  text-shadow: none;
+}
+
+.cyber-btn.router-link-active {
+  background-color: var(--matrix-green);
+  color: #000;
+  box-shadow: 0 0 30px var(--matrix-green);
+  text-shadow: none;
   transform: skewX(-3deg) scale(1.05);
 }
 
+/* === 底部扫描线 === */
+.scan-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--matrix-green);
+  box-shadow: 0 0 10px var(--matrix-green);
+}
+
+/* 增加一个流动的光点 */
+.scan-line::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 100px;
+  height: 4px;
+  background: #fff;
+  opacity: 0.5;
+  filter: blur(3px);
+  animation: scan-move 4s infinite ease-in-out;
+}
+
+@keyframes scan-move {
+  0% { left: -10%; }
+  100% { left: 110%; }
+}
+
+/* === 故障动画 === */
+@keyframes glitch-anim-1 {
+  0% { clip-path: inset(20% 0 80% 0); transform: translate(-2px, 1px); }
+  20% { clip-path: inset(60% 0 10% 0); transform: translate(2px, -1px); }
+  40% { clip-path: inset(40% 0 50% 0); transform: translate(-2px, 2px); }
+  60% { clip-path: inset(80% 0 5% 0); transform: translate(2px, -2px); }
+  80% { clip-path: inset(10% 0 70% 0); transform: translate(-1px, 1px); }
+  100% { clip-path: inset(30% 0 20% 0); transform: translate(1px, -1px); }
+}
+
+@keyframes glitch-anim-2 {
+  0% { clip-path: inset(10% 0 60% 0); transform: translate(2px, -1px); }
+  20% { clip-path: inset(80% 0 5% 0); transform: translate(-2px, 2px); }
+  40% { clip-path: inset(30% 0 20% 0); transform: translate(2px, 1px); }
+  60% { clip-path: inset(10% 0 80% 0); transform: translate(-1px, -2px); }
+  80% { clip-path: inset(50% 0 30% 0); transform: translate(1px, 2px); }
+  100% { clip-path: inset(20% 0 70% 0); transform: translate(-2px, 1px); }
+}
+
 @media (max-width: 768px) {
-  .title {
-    font-size: 2.5rem;
-    letter-spacing: 4px;
-  }
-
-  .cyberpunk-logo {
-    letter-spacing: 6px;
-  }
-
-  .nav {
-    gap: 12px;
-  }
-
-  .nav-link {
-    padding: 10px 18px;
-    font-size: 0.9rem;
-    letter-spacing: 1px;
-  }
+  .glitch-title { font-size: 2.5rem; }
+  .cyber-btn { padding: 8px 16px; font-size: 0.9rem; }
 }
 </style>

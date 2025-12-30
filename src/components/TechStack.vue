@@ -79,7 +79,7 @@ const technologies = ref([
 }
 
 .tech-tag {
-  background: rgba(0, 255, 0, 0.1);
+  background: rgba(0, 0, 0, 0.95);
   border: 1px solid #00ff00;
   padding: 12px 24px;
   color: #00ff00;
