@@ -22,7 +22,7 @@
 
     <!-- 文章列表区域 -->
     <section class="posts-section">
-      <!-- 筛选器容器：搜索框和分类标签 -->
+      <!-- 筛选器容器：搜索框、分类筛选和标签筛选 -->
       <div class="filter-container">
         <!-- 搜索框 -->
         <div class="search-box">
@@ -43,30 +43,49 @@
           </button>
         </div>
         
-        <!-- 标签筛选 -->
-        <div class="tag-filter">
-          <button 
-            v-for="tag in visibleTags" 
-            :key="tag"
-            :class="['tag-filter-btn', { active: selectedTag === tag }]"
-            @click="selectedTag = tag"
-          >
-            {{ tag === 'All' ? 'ALL' : tag }}
-          </button>
-          <button 
-            v-if="allTags.length > 5 && !showAllTags"
-            class="tag-filter-btn more-tags-btn"
-            @click="showAllTags = true"
-          >
-            更多标签
-          </button>
-          <button 
-            v-if="showAllTags"
-            class="tag-filter-btn more-tags-btn"
-            @click="showAllTags = false"
-          >
-            收起
-          </button>
+        <!-- 标签筛选和分类筛选 -->
+        <div class="filter-row">
+          <!-- 标签筛选 -->
+          <div class="tag-filter">
+            <button 
+              v-for="tag in visibleTags" 
+              :key="tag"
+              :class="['tag-filter-btn', { active: selectedTag === tag }]"
+              @click="selectedTag = tag"
+            >
+              {{ tag === 'All' ? 'ALL' : tag }}
+            </button>
+            <button 
+              v-if="allTags.length > 5 && !showAllTags"
+              class="tag-filter-btn more-tags-btn"
+              @click="showAllTags = true"
+            >
+              更多标签
+            </button>
+            <button 
+              v-if="showAllTags"
+              class="tag-filter-btn more-tags-btn"
+              @click="showAllTags = false"
+            >
+              收起
+            </button>
+          </div>
+          
+          <!-- 分类筛选 -->
+          <div class="category-filter">
+            <div class="category-select-wrapper">
+              <select 
+                v-model="selectedCategory" 
+                class="category-select"
+                @change="currentPage = 1"
+              >
+                <option value="All">CATEGORIES</option>
+                <option v-for="category in categoryOptions" :key="category" :value="category">
+                  {{ category }}
+                </option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -159,8 +178,15 @@ const posts = ref([])
 const searchQuery = ref('')
 // 实际用于搜索的关键词
 const activeSearchQuery = ref('')
-// 当前选中的分类
+// 所有可用的分类选项
+const categoryOptions = ['Dev', 'Life', 'Misc', 'Alpha']
 const selectedCategory = ref('All')
+
+// 所有可用的标签选项
+const allTags = ref([])
+const selectedTag = ref('All')
+const showAllTags = ref(false)
+
 // 当前页码
 const currentPage = ref(1)
 // 每页显示的文章数量
@@ -170,11 +196,6 @@ const loading = ref(true)
 // 错误信息
 const error = ref(null)
 
-// 所有可用的分类选项
-const allTags = ref([])
-const selectedTag = ref('All')
-const showAllTags = ref(false)
-
 const visibleTags = computed(() => {
   if (showAllTags.value) {
     return ['All', ...allTags.value]
@@ -182,9 +203,15 @@ const visibleTags = computed(() => {
   return ['All', ...allTags.value.slice(0, 5)]
 })
 
-// 计算属性：根据搜索关键词和分类筛选文章
+// 计算属性：根据搜索关键词、分类和标签筛选文章
 const filteredPosts = computed(() => {
   let result = posts.value
+  
+  if (selectedCategory.value !== 'All') {
+    result = result.filter(post => 
+      post.category === selectedCategory.value
+    )
+  }
   
   if (selectedTag.value !== 'All') {
     result = result.filter(post => 
@@ -585,14 +612,98 @@ onMounted(async () => {
   stroke: #0a0a0a;
 }
 
+/* 筛选行：标签和分类筛选在同一行 */
+.filter-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0, 255, 0, 0.3);
+  position: relative;
+}
+
+/* 分类筛选容器 */
+.category-filter {
+  position: absolute;
+  right: 0;
+  top: 15px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  min-width: 130px;
+}
+
+/* 分类选择框样式 */
+.category-select {
+  width: auto;
+  min-width: 120px;
+  padding: 10px 35px 10px 15px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  font-size: 0.9rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  letter-spacing: 1px;
+  border-radius: 4px;
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.2);
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  position: relative;
+  padding-right: 35px;
+}
+
+/* 自定义下拉箭头 */
+.category-select-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.category-select-wrapper::after {
+  content: '▼';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #00ff00;
+  font-size: 0.7rem;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.category-select-wrapper:hover::after {
+  color: #00ff00;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.category-select:hover {
+  border-color: #00ff00;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.category-select:focus {
+  border-color: #00ff00;
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+  background: rgba(0, 0, 0, 0.95);
+}
+
+.category-select option {
+  background: rgba(0, 0, 0, 0.95);
+  color: #00ff00;
+  padding: 10px;
+}
+
 /* 标签筛选容器 */
 .tag-filter {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(0, 255, 0, 0.3);
+  flex: 1;
+  max-width: calc(100% - 150px);
+  align-items: center;
 }
 
 /* 标签筛选按钮样式 */

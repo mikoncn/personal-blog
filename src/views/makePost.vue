@@ -35,6 +35,8 @@ const tagSearch = ref('')
 const showTagDropdown = ref(false)
 const addingNewTag = ref(false)
 
+const categoryOptions = ['Dev', 'Life', 'Misc', 'Alpha']
+
 async function loadAllTags() {
   try {
     const { data, error } = await supabase
@@ -440,13 +442,16 @@ async function handleSubmit() {
             <span class="label-icon">📜</span>
             分类
           </label>
-          <input 
+          <select 
             v-model="formData.category" 
-            type="text" 
-            class="form-input" 
-            placeholder="输入分类（如：技术、教程、思考）..."
+            class="form-input"
             required
-          />
+          >
+            <option value="" disabled>选择分类...</option>
+            <option v-for="option in categoryOptions" :key="option" :value="option">
+              {{ option }}
+            </option>
+          </select>
         </div>
 
         <div class="form-group">
@@ -793,6 +798,11 @@ async function handleSubmit() {
   border-color: #00ff00;
   box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
   background: rgba(0, 40, 0, 0.8);
+}
+
+.form-input option {
+  background: rgba(0, 40, 0, 0.95);
+  color: #00ff00;
 }
 
 .form-textarea {
