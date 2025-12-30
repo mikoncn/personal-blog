@@ -20,6 +20,8 @@ const formData = ref({
 const submitting = ref(false)
 const message = ref('')
 const messageType = ref('')
+const draftSaved = ref(false)
+const draftSaving = ref(false)
 
 const editorRef = ref(null)
 const previewRef = ref(null)
@@ -125,9 +127,89 @@ watch(selectedTags, (newTags) => {
   formData.value.tags = newTags.join(', ')
 }, { deep: true })
 
+const draftKey = computed(() => {
+  return isEditMode.value ? `post_draft_edit_${route.params.id}` : 'post_draft_new'
+})
+
+function saveDraft() {
+  try {
+    draftSaving.value = true
+    const draftData = {
+      title: formData.value.title,
+      category: formData.value.category,
+      summary: formData.value.summary,
+      content: formData.value.content,
+      tags: formData.value.tags,
+      selectedTags: selectedTags.value,
+      timestamp: Date.now()
+    }
+    localStorage.setItem(draftKey.value, JSON.stringify(draftData))
+    draftSaved.value = true
+    setTimeout(() => {
+      draftSaved.value = false
+    }, 2000)
+    console.log('💾 [草稿系统] 草稿已保存')
+  } catch (error) {
+    console.error('☠️ [草稿系统] 保存草稿失败！', error)
+  } finally {
+    draftSaving.value = false
+  }
+}
+
+function loadDraft() {
+  try {
+    const draftData = localStorage.getItem(draftKey.value)
+    if (!draftData) return false
+
+    const parsed = JSON.parse(draftData)
+    const timeDiff = Date.now() - parsed.timestamp
+    const hoursDiff = timeDiff / (1000 * 60 * 60)
+
+    if (hoursDiff > 24) {
+      localStorage.removeItem(draftKey.value)
+      console.log('🗑️ [草稿系统] 草稿已过期（超过24小时）')
+      return false
+    }
+
+    formData.value = {
+      title: parsed.title || '',
+      category: parsed.category || '',
+      summary: parsed.summary || '',
+      content: parsed.content || '',
+      tags: parsed.tags || ''
+    }
+    selectedTags.value = parsed.selectedTags || []
+    console.log('📂 [草稿系统] 草稿已恢复，保存时间:', new Date(parsed.timestamp).toLocaleString())
+    return true
+  } catch (error) {
+    console.error('☠️ [草稿系统] 加载草稿失败！', error)
+    return false
+  }
+}
+
+function clearDraft() {
+  try {
+    localStorage.removeItem(draftKey.value)
+    console.log('🗑️ [草稿系统] 草稿已清除')
+  } catch (error) {
+    console.error('☠️ [草稿系统] 清除草稿失败！', error)
+  }
+}
+
+watch(formData, () => {
+  saveDraft()
+}, { deep: true })
+
+watch(selectedTags, () => {
+  saveDraft()
+}, { deep: true })
+
 onMounted(() => {
   loadPostData()
   loadAllTags()
+  if (!isEditMode.value) {
+    loadDraft()
+  }
 })
 
 async function loadPostData() {
@@ -337,6 +419,7 @@ async function handleSubmit() {
       console.log('✨ [神圣机械日志] 机魂大悦，圣典已更新！')
       console.log('📖 [神圣机械日志] 圣典更新成功:', updatedData)
 
+      clearDraft()
       message.value = '机魂大悦，圣典已更新'
       messageType.value = 'success'
 
@@ -382,6 +465,7 @@ async function handleSubmit() {
       console.log('✨ [神圣机械日志] 机魂大悦，数据已注入！')
       console.log('📖 [神圣机械日志] 新圣典已创建:', data[0])
 
+      clearDraft()
       message.value = '机魂大悦，数据已注入'
       messageType.value = 'success'
 
@@ -418,6 +502,11 @@ async function handleSubmit() {
         <span class="title-glow"></span>
       </h1>
       <p class="page-subtitle">{{ isEditMode ? '重塑你的智慧于机械神殿' : '将你的智慧注入机械神殿' }}</p>
+      <div class="draft-status">
+        <span v-if="draftSaving" class="draft-saving">💾 保存中...</span>
+        <span v-else-if="draftSaved" class="draft-saved">✓ 草稿已保存</span>
+        <span v-else class="draft-auto">⚡ 自动保存草稿</span>
+      </div>
     </section>
 
     <section class="form-section">
@@ -739,6 +828,53 @@ async function handleSubmit() {
   font-family: 'Rajdhani', sans-serif;
   letter-spacing: 2px;
   margin-top: 10px;
+}
+
+.draft-status {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.draft-saving,
+.draft-saved,
+.draft-auto {
+  padding: 8px 20px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: 'Rajdhani', sans-serif;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.draft-saving {
+  color: #00ff00;
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.draft-saved {
+  color: #00ff00;
+  background: rgba(0, 255, 0, 0.15);
+  border: 1px solid #00ff00;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.draft-auto {
+  color: rgba(0, 255, 0, 0.5);
+  background: rgba(0, 255, 0, 0.05);
+  border: 1px dashed rgba(0, 255, 0, 0.2);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .form-section {
