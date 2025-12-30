@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPostById } from '../services/postService'
+import { supabase } from '../utils/supabase'
 import { formatDate } from '../utils/dateFormatter'
 import { renderMarkdown } from '../utils/markdown'
 import '../assets/markdown.css'
@@ -14,21 +15,53 @@ const props = defineProps(['id'])
 const post = ref(null)
 const loading = ref(true)
 const error = ref(null)
+const deleting = ref(false)
 
 const formattedContent = ref('')
 
+async function handleDelete() {
+  if (!confirm('⚠️ 确认要销毁这篇圣典吗？此操作不可逆！')) {
+    return
+  }
+
+  deleting.value = true
+  try {
+    console.log('☠️ [异端审判] 准备销毁圣典，ID:', post.value.id)
+    
+    const { error: deleteError } = await supabase
+      .from('posts')
+      .delete()
+      .eq('id', post.value.id)
+
+    if (deleteError) {
+      console.error('☠️ [异端警告] 销毁圣典失败！', deleteError)
+      throw deleteError
+    }
+
+    console.log('✨ [神圣机械日志] 圣典已成功销毁！')
+    alert('✨ 机魂大悦，圣典已销毁！')
+    router.push('/')
+  } catch (err) {
+    console.error('☠️ [异端警告] 销毁圣典失败！', err)
+    alert('☠️ 销毁失败：' + err.message)
+  } finally {
+    deleting.value = false
+  }
+}
+
 onMounted(async () => {
-  console.log('⚔️ [帝国防卫军日志] 战术小队已部署，圣典 ID:', props.id)
+  const postId = parseInt(props.id)
+  console.log('⚔️ [帝国防卫军日志] 战术小队已部署，圣典 ID:', postId, '类型:', typeof postId)
   try {
     console.log('⚔️ [帝国防卫军日志] 开始检索圣典数据...')
-    const foundPost = await getPostById(props.id)
+    const foundPost = await getPostById(postId)
     if (foundPost) {
       post.value = foundPost
       formattedContent.value = renderMarkdown(foundPost.content)
       console.log('⚔️ [帝国防卫军日志] 圣典装载成功，标题:', foundPost.title)
     } else {
       error.value = '圣典未找到或已被异端摧毁'
-      console.error('☠️ [异端警告] 圣典检索失败，ID:', props.id)
+      console.error('☠️ [异端警告] 圣典检索失败，ID:', postId)
     }
   } catch (err) {
     error.value = err.message
@@ -58,14 +91,35 @@ onMounted(async () => {
       
       <!-- 文章内容显示 -->
       <div v-else-if="post" class="post-content">
-        <!-- 返回按钮 -->
-        <router-link to="/" class="back-button">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 12H5" stroke="#00ff00" stroke-width="2" stroke-linecap="round"/>
-            <path d="M12 19L5 12L12 5" stroke="#00ff00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span class="back-button-text">返回主页</span>
-        </router-link>
+        <!-- 返回按钮、删除按钮和修改按钮 -->
+        <div class="action-buttons">
+          <router-link to="/" class="back-button">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 12H5" stroke="#00ff00" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 19L5 12L12 5" stroke="#00ff00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="back-button-text">返回主页</span>
+          </router-link>
+          <div class="right-buttons">
+            <button @click="handleDelete" class="delete-button" :disabled="deleting">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 6H5H21" stroke="#ff3333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6" stroke="#ff3333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6" stroke="#ff3333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 11V17" stroke="#ff3333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 11V17" stroke="#ff3333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="delete-button-text">{{ deleting ? '删除中...' : '删除文章' }}</span>
+            </button>
+            <router-link :to="`/edit-post/${post.id}`" class="edit-button">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="#00ffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z" stroke="#00ffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="edit-button-text">修改文章</span>
+            </router-link>
+          </div>
+        </div>
         
         <!-- 文章头部信息：分类和日期 -->
         <div class="post-header">
@@ -153,6 +207,95 @@ onMounted(async () => {
   }
 }
 
+/* 返回按钮和修改按钮容器 */
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+/* 右侧按钮容器：删除和修改按钮 */
+.right-buttons {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+/* 删除按钮样式：红色警告风格 */
+.delete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 30px;
+  background-color: #0a0a0a;
+  border: 2px solid #ff3333;
+  color: #ff3333;
+  text-decoration: none;
+  font-size: 1rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(255, 51, 51, 0.5);
+  transform: skewX(-3deg);
+  cursor: pointer;
+}
+
+/* 删除按钮扫描效果 */
+.delete-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 51, 51, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+/* 悬停时扫描线移动 */
+.delete-button:hover::before {
+  left: 100%;
+}
+
+/* 删除按钮悬停效果：增强发光 */
+.delete-button:hover:not(:disabled) {
+  background-color: #ff3333;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #ff3333;
+  transform: skewX(-3deg) scale(1.05);
+}
+
+/* 删除按钮禁用状态 */
+.delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.delete-button-text {
+  font-weight: 600;
+}
+
+.delete-button svg {
+  width: 20px;
+  height: 20px;
+  transition: all 0.3s ease;
+}
+
+.delete-button:hover:not(:disabled) svg {
+  transform: scale(1.1);
+}
+
+.delete-button:hover:not(:disabled) svg path {
+  stroke: #0a0a0a;
+}
+
 /* 返回按钮样式：赛博朋克风格 */
 .back-button {
   display: inline-flex;
@@ -174,7 +317,6 @@ onMounted(async () => {
   overflow: hidden;
   text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
   transform: skewX(-3deg);
-  margin-bottom: 30px;
 }
 
 /* 返回按钮扫描效果 */
@@ -220,6 +362,71 @@ onMounted(async () => {
 }
 
 .back-button:hover svg path {
+  stroke: #0a0a0a;
+}
+
+/* 修改按钮样式：与返回按钮对称 */
+.edit-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 30px;
+  background-color: #0a0a0a;
+  border: 2px solid #00ffff;
+  color: #00ffff;
+  text-decoration: none;
+  font-size: 1rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+  transform: skewX(-3deg);
+}
+
+/* 修改按钮扫描效果 */
+.edit-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+/* 悬停时扫描线移动 */
+.edit-button:hover::before {
+  left: 100%;
+}
+
+/* 修改按钮悬停效果：增强发光 */
+.edit-button:hover {
+  background-color: #00ffff;
+  color: #0a0a0a;
+  box-shadow: 0 0 30px #00ffff;
+  transform: skewX(-3deg) scale(1.05);
+}
+
+/* 修改按钮文字 */
+.edit-button-text {
+  font-weight: 600;
+}
+
+/* 修改按钮 SVG 图标 */
+.edit-button svg {
+  width: 20px;
+  height: 20px;
+  transition: all 0.3s ease;
+}
+
+/* 悬停时图标移动并变黑 */
+.edit-button:hover svg path {
   stroke: #0a0a0a;
 }
 

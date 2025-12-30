@@ -1,11 +1,14 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '../utils/supabase'
 import { renderMarkdown } from '../utils/markdown'
 import '../assets/markdown.css'
 
 const router = useRouter()
+const route = useRoute()
+
+const isEditMode = computed(() => !!route.params.id)
 
 const formData = ref({
   title: '',
@@ -24,6 +27,45 @@ const previewRef = ref(null)
 
 const renderedContent = computed(() => {
   return renderMarkdown(formData.value.content)
+})
+
+async function loadPostData() {
+  if (!isEditMode.value) return
+
+  try {
+    const postId = parseInt(route.params.id)
+    console.log('⚙️ [神圣机械日志] 开始加载圣典，ID:', postId, '类型:', typeof postId)
+    
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', postId)
+      .single()
+
+    console.log('⚙️ [神圣机械日志] 查询结果:', data, '错误:', error)
+
+    if (error) throw error
+
+    if (data) {
+      formData.value = {
+        title: data.title || '',
+        category: data.category || '',
+        summary: data.summary || '',
+        content: data.content || '',
+        tags: Array.isArray(data.tags) ? data.tags.join(', ') : ''
+      }
+      console.log('✨ [神圣机械日志] 圣典加载成功:', formData.value)
+    }
+  } catch (error) {
+    console.error('☠️ [异端警告] 加载圣典失败！', error)
+    console.error('错误详情:', error.message, error.code, error.hint)
+    message.value = '加载圣典失败：' + error.message
+    messageType.value = 'error'
+  }
+}
+
+onMounted(() => {
+  loadPostData()
 })
 
 watch(() => formData.value.content, () => {
@@ -135,50 +177,123 @@ async function handleSubmit() {
       .map(tag => tag.trim())
       .filter(tag => tag.length > 0)
 
-    console.log('⚙️ [神圣机械日志] 正在查询圣典库中的最大编号...')
-    const { data: existingPosts, error: queryError } = await supabase
-      .from('posts')
-      .select('id')
-      .order('id', { ascending: false })
-      .limit(1)
+    if (isEditMode.value) {
+      const postId = parseInt(route.params.id)
+      const updateData = {
+        title: formData.value.title,
+        category: formData.value.category,
+        summary: formData.value.summary,
+        content: formData.value.content,
+        tags: tagsArray
+      }
 
-    if (queryError) throw queryError
+      console.log('⚙️ [神圣机械日志] 准备更新圣典')
+      console.log('⚙️ [神圣机械日志] 圣典 ID:', postId, '类型:', typeof postId)
+      console.log('⚙️ [神圣机械日志] 更新数据:', updateData)
 
-    let newId = 1
-    if (existingPosts && existingPosts.length > 0) {
-      const maxId = existingPosts[0].id
-      newId = maxId + 1
+      const { data: existingData, error: queryError } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', postId)
+        .single()
+
+      console.log('⚙️ [神圣机械日志] 查询现有记录:', existingData, '错误:', queryError)
+
+      if (queryError) {
+        console.error('☠️ [异端警告] 查询现有记录失败！')
+        console.error('错误详情:', queryError.message, queryError.code, queryError.hint)
+        throw queryError
+      }
+
+      if (!existingData) {
+        console.error('☠️ [异端警告] 未找到要更新的圣典记录！')
+        throw new Error('未找到要更新的圣典记录')
+      }
+
+      console.log('⚙️ [神圣机械日志] 开始执行更新操作...')
+      const { error: updateError } = await supabase
+        .from('posts')
+        .update(updateData)
+        .eq('id', postId)
+
+      console.log('⚙️ [神圣机械日志] 更新错误:', updateError)
+
+      if (updateError) {
+        console.error('☠️ [异端警告] 更新失败！')
+        console.error('错误详情:', updateError.message, updateError.code, updateError.hint, updateError.details)
+        throw updateError
+      }
+
+      console.log('⚙️ [神圣机械日志] 更新完成，重新查询数据...')
+      const { data: updatedData, error: fetchError } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', postId)
+        .single()
+
+      console.log('⚙️ [神圣机械日志] 重新查询结果:', updatedData, '错误:', fetchError)
+
+      if (fetchError) {
+        console.error('☠️ [异端警告] 重新查询失败！')
+        console.error('错误详情:', fetchError.message, fetchError.code, fetchError.hint)
+        throw fetchError
+      }
+
+      console.log('✨ [神圣机械日志] 机魂大悦，圣典已更新！')
+      console.log('📖 [神圣机械日志] 圣典更新成功:', updatedData)
+
+      message.value = '机魂大悦，圣典已更新'
+      messageType.value = 'success'
+
+      setTimeout(() => {
+        router.push(`/post/${postId}`)
+      }, 1500)
+    } else {
+      console.log('⚙️ [神圣机械日志] 正在查询圣典库中的最大编号...')
+      const { data: existingPosts, error: queryError } = await supabase
+        .from('posts')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1)
+
+      if (queryError) throw queryError
+
+      let newId = 1
+      if (existingPosts && existingPosts.length > 0) {
+        const maxId = existingPosts[0].id
+        newId = maxId + 1
+      }
+
+      console.log('⚙️ [神圣机械日志] 新圣典编号已确定:', newId)
+
+      const postData = {
+        id: newId,
+        title: formData.value.title,
+        category: formData.value.category,
+        summary: formData.value.summary,
+        content: formData.value.content,
+        tags: tagsArray
+      }
+
+      console.log('⚙️ [神圣机械日志] 准备注入数据:', postData)
+
+      const { data, error } = await supabase
+        .from('posts')
+        .insert([postData])
+        .select()
+
+      if (error) throw error
+
+      console.log('✨ [神圣机械日志] 机魂大悦，数据已注入！')
+      console.log('📖 [神圣机械日志] 新圣典已创建:', data[0])
+
+      message.value = '机魂大悦，数据已注入'
+      messageType.value = 'success'
+
+      setTimeout(() => {
+        router.push('/')
+      }, 1500)
     }
-
-    console.log('⚙️ [神圣机械日志] 新圣典编号已确定:', newId)
-
-    const postData = {
-      id: newId,
-      title: formData.value.title,
-      category: formData.value.category,
-      summary: formData.value.summary,
-      content: formData.value.content,
-      tags: tagsArray
-    }
-
-    console.log('⚙️ [神圣机械日志] 准备注入数据:', postData)
-
-    const { data, error } = await supabase
-      .from('posts')
-      .insert([postData])
-      .select()
-
-    if (error) throw error
-
-    console.log('✨ [神圣机械日志] 机魂大悦，数据已注入！')
-    console.log('📖 [神圣机械日志] 新圣典已创建:', data[0])
-
-    message.value = '机魂大悦，数据已注入'
-    messageType.value = 'success'
-
-    setTimeout(() => {
-      router.push('/')
-    }, 1500)
 
   } catch (error) {
     console.error('☠️ [异端警告] 注魔仪式失败！异端入侵！', error)
@@ -204,10 +319,10 @@ async function handleSubmit() {
 
     <section class="page-header">
       <h1 class="page-title">
-        <span class="title-text">神圣注魔仪式</span>
+        <span class="title-text">{{ isEditMode ? '圣典重铸仪式' : '神圣注魔仪式' }}</span>
         <span class="title-glow"></span>
       </h1>
-      <p class="page-subtitle">将你的智慧注入机械神殿</p>
+      <p class="page-subtitle">{{ isEditMode ? '重塑你的智慧于机械神殿' : '将你的智慧注入机械神殿' }}</p>
     </section>
 
     <section class="form-section">
@@ -335,8 +450,8 @@ async function handleSubmit() {
             class="submit-btn"
             :disabled="submitting"
           >
-            <span v-if="!submitting">⚡ 注魔仪式</span>
-            <span v-else>⚙️ 注魔中...</span>
+            <span v-if="!submitting">{{ isEditMode ? '⚡ 重铸仪式' : '⚡ 注魔仪式' }}</span>
+            <span v-else>⚙️ {{ isEditMode ? '重铸中...' : '注魔中...' }}</span>
           </button>
         </div>
 

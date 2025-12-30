@@ -32,6 +32,13 @@ const routes = [
     path: '/make-post',
     name: 'makePost',
     component: makePost
+  },
+  // 文章编辑页路由：动态参数 :id
+  {
+    path: '/edit-post/:id',
+    name: 'EditPost',
+    component: makePost,
+    props: true
   }
 ]
 
