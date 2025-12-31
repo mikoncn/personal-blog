@@ -39,6 +39,16 @@ const addingNewTag = ref(false)
 
 const categoryOptions = ['Dev', 'Life', 'Misc', 'Alpha']
 
+const selectedFiles = ref([])
+const imagePreviews = ref([])
+const uploadingImages = ref(false)
+const uploadedImageUrls = ref([])
+
+const coverFile = ref(null)
+const coverPreview = ref('')
+const uploadingCover = ref(false)
+const showCoverPreview = ref(false)
+
 async function loadAllTags() {
   try {
     const { data, error } = await supabase
@@ -347,6 +357,127 @@ function insertTable() {
   })
 }
 
+function handleFileSelect(event) {
+  const files = Array.from(event.target.files)
+  selectedFiles.value = [...selectedFiles.value, ...files]
+  
+  files.forEach(file => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      imagePreviews.value.push(e.target.result)
+    }
+    reader.readAsDataURL(file)
+  })
+  
+  event.target.value = ''
+}
+
+function removeImage(index) {
+  selectedFiles.value.splice(index, 1)
+  imagePreviews.value.splice(index, 1)
+}
+
+function handleCoverSelect(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  coverFile.value = file
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    coverPreview.value = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+function removeCover() {
+  coverFile.value = null
+  coverPreview.value = ''
+  event.target.value = ''
+}
+
+async function uploadCover() {
+  if (!coverFile.value) {
+    return null
+  }
+
+  uploadingCover.value = true
+  try {
+    const fileExt = coverFile.value.name.split('.').pop()
+    const fileName = `cover-${Date.now()}.${fileExt}`
+    const filePath = `${fileName}`
+
+    console.log('⚙️ [神圣机械日志] 正在上传封面图:', fileName)
+
+    const { data, error } = await supabase.storage
+      .from('post-images')
+      .upload(filePath, coverFile.value)
+
+    if (error) {
+      console.error('☠️ [异端警告] 封面上传失败！', error)
+      throw error
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('post-images')
+      .getPublicUrl(filePath)
+
+    console.log('✨ [神圣机械日志] 封面上传成功:', publicUrl)
+    return publicUrl
+  } catch (error) {
+    console.error('☠️ [异端警告] 封面上传失败！', error)
+    message.value = '封面上传失败：' + error.message
+    messageType.value = 'error'
+    throw error
+  } finally {
+    uploadingCover.value = false
+  }
+}
+
+async function uploadImages() {
+  if (selectedFiles.value.length === 0) {
+    return []
+  }
+
+  uploadingImages.value = true
+  const urls = []
+
+  try {
+    for (let i = 0; i < selectedFiles.value.length; i++) {
+      const file = selectedFiles.value[i]
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${i}.${fileExt}`
+      const filePath = `${fileName}`
+
+      console.log('⚙️ [神圣机械日志] 正在上传图片:', fileName)
+
+      const { data, error } = await supabase.storage
+        .from('post-images')
+        .upload(filePath, file)
+
+      if (error) {
+        console.error('☠️ [异端警告] 图片上传失败！', error)
+        throw error
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('post-images')
+        .getPublicUrl(filePath)
+
+      urls.push(publicUrl)
+      console.log('✨ [神圣机械日志] 图片上传成功:', publicUrl)
+    }
+
+    return urls
+  } catch (error) {
+    console.error('☠️ [异端警告] 图片上传失败！', error)
+    message.value = '图片上传失败：' + error.message
+    messageType.value = 'error'
+    throw error
+  } finally {
+    uploadingImages.value = false
+  }
+}
+
 async function handleSubmit() {
   console.log('⚙️ [神圣机械日志] 机魂注魔仪式启动...')
   
@@ -361,6 +492,22 @@ async function handleSubmit() {
 
   try {
     const tagsArray = [...selectedTags.value]
+    
+    console.log('⚙️ [神圣机械日志] 开始上传封面图...')
+    const coverUrl = await uploadCover()
+    console.log('✨ [神圣机械日志] 封面上传完成:', coverUrl)
+    
+    console.log('⚙️ [神圣机械日志] 开始上传图片...')
+    const imageUrls = await uploadImages()
+    console.log('✨ [神圣机械日志] 图片上传完成，共', imageUrls.length, '张')
+
+    const imageData = {}
+    if (coverUrl) {
+      imageData.cover = coverUrl
+    }
+    if (imageUrls.length > 0) {
+      imageData.images = imageUrls
+    }
 
     if (isEditMode.value) {
       const postId = parseInt(route.params.id)
@@ -370,7 +517,8 @@ async function handleSubmit() {
         summary: formData.value.summary,
         content: formData.value.content,
         tags: tagsArray,
-        user_id: currentUser.value.id
+        user_id: currentUser.value.id,
+        image_url: Object.keys(imageData).length > 0 ? imageData : null
       }
 
       console.log('⚙️ [神圣机械日志] 准备更新圣典')
@@ -460,7 +608,8 @@ async function handleSubmit() {
         summary: formData.value.summary,
         content: formData.value.content,
         tags: tagsArray,
-        user_id: currentUser.value.id
+        user_id: currentUser.value.id,
+        image_url: Object.keys(imageData).length > 0 ? imageData : null
       }
 
       console.log('⚙️ [神圣机械日志] 准备注入数据:', postData)
@@ -568,7 +717,108 @@ async function handleSubmit() {
 
         <div class="form-group">
           <label class="form-label">
-            <span class="label-icon">📖</span>
+            <span class="label-icon">🖼️</span>
+            封面图
+          </label>
+          
+          <div class="cover-upload-section">
+            <input 
+              type="file" 
+              ref="coverInput"
+              accept="image/*" 
+              @change="handleCoverSelect"
+              style="display: none"
+            />
+            
+            <button 
+              type="button" 
+              class="upload-btn"
+              @click="$refs.coverInput.click()"
+              :disabled="uploadingCover"
+            >
+              <span v-if="!uploadingCover">📷 选择封面</span>
+              <span v-else>⏳ 上传中...</span>
+            </button>
+            
+            <div v-if="coverPreview" class="cover-preview-container">
+              <img :src="coverPreview" alt="封面预览" class="cover-preview" />
+              <button 
+                type="button" 
+                class="remove-cover-btn"
+                @click="removeCover"
+              >
+                ×
+              </button>
+              <button 
+                type="button" 
+                class="preview-toggle-btn"
+                @click="showCoverPreview = !showCoverPreview"
+              >
+                {{ showCoverPreview ? '🔍 隐藏预览' : '👁️ 预览封面' }}
+              </button>
+            </div>
+            
+            <div v-if="showCoverPreview && coverPreview" class="cover-full-preview">
+              <img :src="coverPreview" alt="封面全屏预览" />
+              <button 
+                type="button" 
+                class="close-preview-btn"
+                @click="showCoverPreview = false"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <span class="label-icon">🖼️</span>
+            图片
+          </label>
+          
+          <div class="image-upload-section">
+            <input 
+              type="file" 
+              ref="fileInput"
+              accept="image/*" 
+              multiple
+              @change="handleFileSelect"
+              style="display: none"
+            />
+            
+            <button 
+              type="button" 
+              class="upload-btn"
+              @click="$refs.fileInput.click()"
+              :disabled="uploadingImages"
+            >
+              <span v-if="!uploadingImages">📁 选择图片</span>
+              <span v-else>⏳ 上传中...</span>
+            </button>
+            
+            <div v-if="imagePreviews.length > 0" class="image-previews">
+              <div 
+                v-for="(preview, index) in imagePreviews" 
+                :key="index"
+                class="image-preview-item"
+              >
+                <img :src="preview" alt="预览" />
+                <button 
+                  type="button" 
+                  class="remove-image-btn"
+                  @click="removeImage(index)"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <span class="label-icon">�</span>
             正文
           </label>
           
@@ -1308,5 +1558,236 @@ async function handleSubmit() {
   background: rgba(255, 0, 0, 0.2);
   border: 2px solid #ff0000;
   color: #ff0000;
+}
+
+.image-upload-section {
+  margin-top: 10px;
+}
+
+.upload-btn {
+  padding: 12px 30px;
+  background: rgba(0, 255, 0, 0.1);
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: rgba(0, 255, 0, 0.2);
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.image-previews {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.image-preview-item {
+  position: relative;
+  border: 2px solid rgba(0, 255, 0, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  background: rgba(0, 20, 0, 0.6);
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.image-preview-item:hover img {
+  transform: scale(1.05);
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 0, 0, 0.8);
+  border: 2px solid #ff0000;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.remove-image-btn:hover {
+  background: #ff0000;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+  transform: scale(1.1);
+}
+
+.cover-upload-section {
+  margin-top: 10px;
+}
+
+.cover-preview-container {
+  position: relative;
+  margin-top: 15px;
+  display: inline-block;
+  border: 2px solid rgba(0, 255, 0, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 20, 0, 0.6);
+}
+
+.cover-preview {
+  max-width: 400px;
+  max-height: 300px;
+  display: block;
+  object-fit: cover;
+}
+
+.remove-cover-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 0, 0, 0.8);
+  border: 2px solid #ff0000;
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.remove-cover-btn:hover {
+  background: #ff0000;
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
+  transform: scale(1.1);
+}
+
+.preview-toggle-btn {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 20px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid #00ff00;
+  color: #00ff00;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.preview-toggle-btn:hover {
+  background: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+}
+
+.cover-full-preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.cover-full-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border: 3px solid #00ff00;
+  border-radius: 10px;
+  box-shadow: 0 0 50px rgba(0, 255, 0, 0.5);
+}
+
+.close-preview-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 0, 0, 0.8);
+  border: 3px solid #ff0000;
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.close-preview-btn:hover {
+  background: #ff0000;
+  box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .image-previews {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+  }
+  
+  .upload-btn {
+    padding: 10px 20px;
+    font-size: 12px;
+  }
+
+  .cover-preview {
+    max-width: 100%;
+    max-height: 200px;
+  }
+
+  .preview-toggle-btn {
+    font-size: 10px;
+    padding: 6px 15px;
+  }
 }
 </style>

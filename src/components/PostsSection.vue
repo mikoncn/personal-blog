@@ -17,6 +17,15 @@
         class="post-card"
         @click="goToPost(post.id)"
       >
+        <!-- 图片预览 -->
+        <div v-if="post.image_url && (post.image_url.cover || (post.image_url.images && post.image_url.images.length > 0))" class="post-image-preview">
+          <img 
+            :src="post.image_url.cover || post.image_url.images[0]" 
+            :alt="post.title" 
+            class="preview-image" 
+          />
+        </div>
+        
         <div class="post-header">
           <span class="post-category">{{ post.category }}</span>
           <span class="post-date">{{ formatDate(post.created_at) }}</span>
@@ -153,6 +162,47 @@ onMounted(async () => {
   transform: skewX(-2deg) translateY(-5px);
   box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
   border-color: #00ffff;
+}
+
+/* 图片预览容器 */
+.post-image-preview {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid rgba(0, 255, 0, 0.3);
+}
+
+/* 预览图片 */
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.3s ease;
+}
+
+/* 悬停时图片放大效果 */
+.post-card:hover .preview-image {
+  transform: scale(1.1);
+}
+
+/* 图片数量标记 */
+.image-count {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #00ff00;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  border: 2px solid #00ff00;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.8);
+  backdrop-filter: blur(5px);
 }
 
 .post-header {
@@ -382,6 +432,11 @@ onMounted(async () => {
 
   .posts-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* 图片预览移动端适配 */
+  .post-image-preview {
+    height: 180px;
   }
 
   .view-all-btn {

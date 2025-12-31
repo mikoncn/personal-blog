@@ -34,6 +34,37 @@ async function handleDelete() {
   try {
     console.log('☠️ [异端审判] 准备销毁圣典，ID:', post.value.id)
     
+    const filesToDelete = []
+    
+    if (post.value.image_url) {
+      if (post.value.image_url.cover) {
+        const fileName = post.value.image_url.cover.split('/').pop()
+        filesToDelete.push(fileName)
+        console.log('⚙️ [神圣机械日志] 准备删除封面图:', fileName)
+      }
+      
+      if (post.value.image_url.images && Array.isArray(post.value.image_url.images)) {
+        post.value.image_url.images.forEach(url => {
+          const fileName = url.split('/').pop()
+          filesToDelete.push(fileName)
+          console.log('⚙️ [神圣机械日志] 准备删除图片:', fileName)
+        })
+      }
+    }
+    
+    if (filesToDelete.length > 0) {
+      console.log('⚙️ [神圣机械日志] 开始删除存储中的图片，共', filesToDelete.length, '张')
+      const { error: storageError } = await supabase.storage
+        .from('post-images')
+        .remove(filesToDelete)
+      
+      if (storageError) {
+        console.error('☠️ [异端警告] 删除图片失败！', storageError)
+        throw storageError
+      }
+      console.log('✨ [神圣机械日志] 图片删除成功')
+    }
+    
     const { error: deleteError } = await supabase
       .from('posts')
       .delete()
@@ -180,8 +211,27 @@ onMounted(async () => {
           <span class="post-date">{{ formatDate(post.created_at) }}</span>
         </div>
         
+        <!-- 封面图 -->
+        <div v-if="post.image_url && post.image_url.cover" class="post-cover">
+          <img :src="post.image_url.cover" :alt="post.title" class="cover-image" />
+        </div>
+        
         <!-- 文章标题 -->
         <h1 class="post-title">{{ post.title }}</h1>
+        
+        <!-- 图片画廊 -->
+        <div v-if="post.image_url && post.image_url.images && post.image_url.images.length > 0" class="post-images">
+          <div class="image-grid">
+            <img 
+              v-for="(url, index) in post.image_url.images" 
+              :key="index" 
+              :src="url" 
+              :alt="`Image ${index + 1}`"
+              class="post-image"
+              loading="lazy"
+            />
+          </div>
+        </div>
         
         <!-- 文章正文内容（HTML格式） -->
         <div class="post-body markdown-content" v-html="formattedContent"></div>
@@ -527,12 +577,73 @@ onMounted(async () => {
   text-shadow: 0 0 20px rgba(0, 255, 0, 0.5), 0 0 40px rgba(0, 255, 0, 0.3);
 }
 
+/* 封面图容器 */
+.post-cover {
+  margin-bottom: 40px;
+  border: 3px solid rgba(0, 255, 0, 0.5);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+  position: relative;
+}
+
+/* 封面图样式 */
+.cover-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  min-height: 400px;
+  transition: all 0.3s ease;
+}
+
+/* 封面图悬停效果 */
+.cover-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 40px rgba(0, 255, 0, 0.5);
+}
+
 /* 文章正文样式 */
 .post-body {
   color: #cccccc;
   font-family: 'Rajdhani', 'Segoe UI', sans-serif;
   font-size: 1.1rem;
   letter-spacing: 0.5px;
+}
+
+/* 图片画廊容器 */
+.post-images {
+  margin: 30px 0;
+  padding: 20px;
+  background: rgba(0, 20, 0, 0.5);
+  border: 2px solid rgba(0, 255, 0, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+}
+
+/* 图片网格布局 */
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+/* 单张图片样式 */
+.post-image {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 2px solid rgba(0, 255, 0, 0.4);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  object-fit: cover;
+}
+
+/* 图片悬停效果 */
+.post-image:hover {
+  border-color: #00ff00;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
+  transform: scale(1.02);
 }
 
 /* 404页面容器：居中显示 */
@@ -571,6 +682,17 @@ onMounted(async () => {
   .back-button svg {
     width: 16px;
     height: 16px;
+  }
+
+  /* 图片画廊移动端适配 */
+  .post-images {
+    padding: 15px;
+    margin: 20px 0;
+  }
+
+  .image-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
   }
 
   /* 缩小文章标题 */
