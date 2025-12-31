@@ -5,6 +5,8 @@ import Home from '../views/Home.vue'
 import PostDetail from '../views/PostDetail.vue'
 import AllPosts from '../views/AllPosts.vue'
 import makePost from '../views/makePost.vue'
+import Login from '../views/Login.vue'
+import Register from '../views/Register.vue'
 
 // 定义路由配置数组
 const routes = [
@@ -39,6 +41,18 @@ const routes = [
     name: 'EditPost',
     component: makePost,
     props: true
+  },
+  // 登录页路由
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login
+  },
+  // 注册页路由
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register
   }
 ]
 

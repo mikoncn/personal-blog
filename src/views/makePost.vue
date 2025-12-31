@@ -1,11 +1,12 @@
 <script setup>
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { supabase } from '../utils/supabase'
 import { renderMarkdown } from '../utils/markdown'
 
 const router = useRouter()
 const route = useRoute()
+const currentUser = inject('currentUser')
 
 const isEditMode = computed(() => !!route.params.id)
 
@@ -348,6 +349,13 @@ function insertTable() {
 
 async function handleSubmit() {
   console.log('⚙️ [神圣机械日志] 机魂注魔仪式启动...')
+  
+  if (!currentUser.value) {
+    message.value = '请先登录以执行此操作'
+    messageType.value = 'error'
+    return
+  }
+  
   submitting.value = true
   message.value = ''
 
@@ -361,7 +369,8 @@ async function handleSubmit() {
         category: formData.value.category,
         summary: formData.value.summary,
         content: formData.value.content,
-        tags: tagsArray
+        tags: tagsArray,
+        user_id: currentUser.value.id
       }
 
       console.log('⚙️ [神圣机械日志] 准备更新圣典')
@@ -450,7 +459,8 @@ async function handleSubmit() {
         category: formData.value.category,
         summary: formData.value.summary,
         content: formData.value.content,
-        tags: tagsArray
+        tags: tagsArray,
+        user_id: currentUser.value.id
       }
 
       console.log('⚙️ [神圣机械日志] 准备注入数据:', postData)

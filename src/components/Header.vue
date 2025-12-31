@@ -1,5 +1,11 @@
 <template>
   <header class="header cyber-matrix">
+    <div v-if="isLoggedIn" class="user-section-top-left">
+      <span class="user-info">{{ userEmail }}</span>
+      <button @click="handleLogout" class="cyber-btn logout-btn" data-text="退出">
+        <span class="btn-inner">退出</span>
+      </button>
+    </div>
     <div class="header-content">
       <div class="logo-box">
         <h1 class="glitch-title" data-text="MIKON_BLOG">MIKON_BLOG</h1>
@@ -16,8 +22,11 @@
         <router-link to="/posts" class="cyber-btn" data-text="文章">
           <span class="btn-inner">文章</span>
         </router-link>
-        <router-link to="/make-post" class="cyber-btn" data-text="发布">
+        <router-link v-if="isLoggedIn" to="/make-post" class="cyber-btn" data-text="发布">
           <span class="btn-inner">发布</span>
+        </router-link>
+        <router-link v-if="!isLoggedIn" to="/login" class="cyber-btn" data-text="登录">
+          <span class="btn-inner">登录</span>
         </router-link>
         <router-link to="/about" class="cyber-btn" data-text="关于">
           <span class="btn-inner">关于</span>
@@ -30,6 +39,54 @@
 </template>
 
 <script setup>
+import { ref, onMounted, inject } from 'vue'
+import { useRouter } from 'vue-router'
+import { supabase } from '../utils/supabase'
+
+const router = useRouter()
+const currentUser = inject('currentUser')
+const isLoggedIn = ref(false)
+const userEmail = ref('')
+
+onMounted(async () => {
+  await checkUser()
+})
+
+async function checkUser() {
+  console.log('🔍 [Header] 使用 getUser() 验证身份...')
+  
+  const { data: { user }, error } = await supabase.auth.getUser()
+  
+  if (error) {
+    console.error('☠️ [Header] 身份验证失败', error)
+    isLoggedIn.value = false
+    userEmail.value = ''
+    return
+  }
+  
+  if (user) {
+    console.log('✅ [Header] 身份验证通过', {
+      id: user.id,
+      email: user.email
+    })
+    isLoggedIn.value = true
+    userEmail.value = user.email
+  } else {
+    console.log('🚪 [Header] 未检测到有效身份')
+    isLoggedIn.value = false
+    userEmail.value = ''
+  }
+}
+
+async function handleLogout() {
+  console.log('🔓 [Header] 正在退出登录...')
+  const { error } = await supabase.auth.signOut()
+  if (!error) {
+    isLoggedIn.value = false
+    userEmail.value = ''
+    router.push('/')
+  }
+}
 </script>
 
 <style scoped>
@@ -229,8 +286,52 @@
   100% { clip-path: inset(20% 0 70% 0); transform: translate(-2px, 1px); }
 }
 
+/* === 用户区域（右上角） === */
+.user-section-top-left {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-info {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 600;
+  color: var(--matrix-green);
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  text-shadow: 0 0 5px var(--matrix-green);
+}
+
+/* === 退出按钮 === */
+.logout-btn {
+  cursor: pointer;
+  padding: 10px 25px;
+  font-size: 0.9rem;
+}
+
+.logout-btn:hover {
+  background-color: #ff0000;
+  border-color: #ff0000;
+  color: #fff;
+  box-shadow: 0 0 30px #ff0000;
+}
+
+.logout-btn.router-link-active {
+  background-color: transparent;
+  border-color: var(--matrix-green);
+  color: var(--matrix-green);
+  box-shadow: none;
+  transform: skewX(-3deg);
+}
+
 @media (max-width: 768px) {
   .glitch-title { font-size: 2.5rem; }
   .cyber-btn { padding: 8px 16px; font-size: 0.9rem; }
+  .user-info { font-size: 0.7rem; }
+  .logout-btn { padding: 6px 15px; font-size: 0.8rem; }
 }
 </style>

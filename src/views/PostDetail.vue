@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPostById } from '../services/postService'
 import { supabase } from '../utils/supabase'
@@ -10,15 +10,22 @@ import Footer from '../components/Footer.vue'
 
 const router = useRouter()
 const props = defineProps(['id'])
+const currentUser = inject('currentUser')
 
 const post = ref(null)
 const loading = ref(true)
 const error = ref(null)
 const deleting = ref(false)
+const isLoggedIn = ref(false)
 
 const formattedContent = ref('')
 
 async function handleDelete() {
+  if (!currentUser.value) {
+    alert('请先登录以执行此操作')
+    return
+  }
+  
   if (!confirm('⚠️ 确认要销毁这篇圣典吗？此操作不可逆！')) {
     return
   }
@@ -51,6 +58,10 @@ async function handleDelete() {
 onMounted(async () => {
   const postId = parseInt(props.id)
   console.log('⚔️ [帝国防卫军日志] 战术小队已部署，圣典 ID:', postId, '类型:', typeof postId)
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  isLoggedIn.value = !!user
+  
   try {
     console.log('⚔️ [帝国防卫军日志] 开始检索圣典数据...')
     const foundPost = await getPostById(postId)
@@ -142,7 +153,7 @@ onMounted(async () => {
             </svg>
             <span class="back-button-text">返回主页</span>
           </router-link>
-          <div class="right-buttons">
+          <div v-if="isLoggedIn" class="right-buttons">
             <button @click="handleDelete" class="delete-button" :disabled="deleting">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 6H5H21" stroke="#ff3333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>

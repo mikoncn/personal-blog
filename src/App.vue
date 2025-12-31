@@ -1,11 +1,43 @@
 <!-- 
   App.vue - 应用根组件
   作用：作为整个应用的入口组件，组合 MatrixRain 背景和路由视图
-  包含：MatrixRain 背景动画组件、router-view 页面路由容器、全局样式
+  包含：MatrixRain 背景动画组件、router-view 页面路由容器、全局样式、Supabase认证状态监听
 -->
 <script setup>
-// 导入 MatrixRain 背景动画组件，用于创建黑客帝国风格的绿色数字雨效果
+import { ref, onMounted, onUnmounted, provide } from 'vue'
 import MatrixRain from './components/MatrixRain.vue'
+import { supabase } from './utils/supabase'
+
+const currentUser = ref(null)
+let authSubscription = null
+
+onMounted(() => {
+  console.log('🔍 [App] 初始化认证状态监听器...')
+  
+  authSubscription = supabase.auth.onAuthStateChange((event, session) => {
+    console.log('🔄 [App] 认证状态变化:', event, session)
+    
+    if (session?.user) {
+      currentUser.value = session.user
+      console.log('✅ [App] 用户已登录:', {
+        id: session.user.id,
+        email: session.user.email
+      })
+    } else {
+      currentUser.value = null
+      console.log('🚪 [App] 用户已登出')
+    }
+  })
+})
+
+onUnmounted(() => {
+  if (authSubscription) {
+    authSubscription.data.subscription.unsubscribe()
+    console.log('🔌 [App] 认证状态监听器已卸载')
+  }
+})
+
+provide('currentUser', currentUser)
 </script>
 
 <template>
