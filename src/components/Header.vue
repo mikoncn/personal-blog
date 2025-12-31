@@ -291,7 +291,7 @@ async function handleLogout() {
   position: absolute;
   top: 20px;
   right: 20px;
-  z-index: 10;
+  z-index: 5;
   display: flex;
   align-items: center;
   gap: 15px;

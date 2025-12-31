@@ -20,11 +20,16 @@ async function handleLogin() {
 
   try {
     console.log('⚙️ [登录系统] 正在验证身份...')
+    console.log('⚙️ [登录系统] Supabase URL:', import.meta.env.VITE_SUPABASE_URL)
+    console.log('⚙️ [登录系统] 邮箱:', formData.value.email)
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: formData.value.email,
       password: formData.value.password
     })
+
+    console.log('⚙️ [登录系统] 响应数据:', data)
+    console.log('⚙️ [登录系统] 错误信息:', error)
 
     if (error) {
       console.log('☠️ [登录系统] 身份验证失败，访问被拒绝', error)
@@ -44,6 +49,7 @@ async function handleLogin() {
     }
   } catch (error) {
     console.error('☠️ [登录系统] 系统异常！', error)
+    console.error('☠️ [登录系统] 错误堆栈:', error.stack)
     message.value = '系统异常：' + error.message
     messageType.value = 'error'
   } finally {

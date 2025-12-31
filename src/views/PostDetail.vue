@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, inject } from 'vue'
+import { ref, onMounted, onUnmounted, inject, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPostById } from '../services/postService'
 import { supabase } from '../utils/supabase'
@@ -19,6 +19,33 @@ const deleting = ref(false)
 const isLoggedIn = ref(false)
 
 const formattedContent = ref('')
+
+const zoomedImage = ref(null)
+const isZoomed = ref(false)
+
+function openZoom(src) {
+  zoomedImage.value = src
+  isZoomed.value = true
+  document.body.style.overflow = 'hidden'
+}
+
+function closeZoom() {
+  zoomedImage.value = null
+  isZoomed.value = false
+  document.body.style.overflow = ''
+}
+
+function handleOverlayClick(e) {
+  if (e.target.classList.contains('zoom-overlay')) {
+    closeZoom()
+  }
+}
+
+function handleEscape(e) {
+  if (e.key === 'Escape') {
+    closeZoom()
+  }
+}
 
 async function handleDelete() {
   if (!currentUser.value) {
@@ -112,48 +139,14 @@ onMounted(async () => {
     console.log('⚔️ [帝国防卫军日志] 装载程序结束，战斗准备就绪')
   }
 
-  setTimeout(() => {
-    console.log('🎨 [颜色调试] 开始检查代码块样式...')
-    const codeBlocks = document.querySelectorAll('.markdown-content pre code')
-    console.log(`📦 [颜色调试] 找到 ${codeBlocks.length} 个代码块`)
-    
-    const allClasses = new Set()
-    const classColors = new Map()
-    
-    codeBlocks.forEach((codeBlock, index) => {
-      const spans = codeBlock.querySelectorAll('span')
-      console.log(`📦 [颜色调试] 代码块 ${index + 1}: 找到 ${spans.length} 个 span 元素`)
-      
-      spans.forEach(span => {
-        const classes = span.className.split(' ').filter(c => c)
-        classes.forEach(cls => {
-          allClasses.add(cls)
-          const computedStyle = window.getComputedStyle(span)
-          const color = computedStyle.color
-          if (!classColors.has(cls)) {
-            classColors.set(cls, color)
-          }
-        })
-      })
-    })
-    
-    console.log('\n🎨 [颜色调试] 所有检测到的类名和颜色:')
-    const sortedClasses = Array.from(allClasses).sort()
-    sortedClasses.forEach(cls => {
-      const color = classColors.get(cls)
-      console.log(`   .${cls} → ${color}`)
-    })
-    
-    console.log(`\n📊 [颜色调试] 统计: 总类名数 ${allClasses.size}, 总代码块数 ${codeBlocks.length}`)
-    
-    console.log('\n⚠️ [颜色调试] 检查可能的颜色问题:')
-    sortedClasses.forEach(cls => {
-      const color = classColors.get(cls)
-      if (color === 'rgb(171, 178, 191)' || color === '#abb2bf') {
-        console.log(`   ⚠️ .${cls} 使用了默认灰色 (${color})`)
-      }
-    })
-  }, 500)
+  window.addEventListener('keydown', handleEscape)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleEscape)
+  if (isZoomed.value) {
+    document.body.style.overflow = ''
+  }
 })
 </script>
 
@@ -213,7 +206,12 @@ onMounted(async () => {
         
         <!-- 封面图 -->
         <div v-if="post.image_url && post.image_url.cover" class="post-cover">
-          <img :src="post.image_url.cover" :alt="post.title" class="cover-image" />
+          <img 
+            :src="post.image_url.cover" 
+            :alt="post.title" 
+            class="cover-image" 
+            @click="openZoom(post.image_url.cover)"
+          />
         </div>
         
         <!-- 文章标题 -->
@@ -229,6 +227,7 @@ onMounted(async () => {
               :alt="`Image ${index + 1}`"
               class="post-image"
               loading="lazy"
+              @click="openZoom(url)"
             />
           </div>
         </div>
@@ -247,6 +246,19 @@ onMounted(async () => {
     
     <!-- 页脚 -->
     <Footer />
+    
+    <!-- 图片缩放遮罩层 -->
+    <div 
+      v-if="isZoomed" 
+      class="zoom-overlay"
+      @click="handleOverlayClick"
+    >
+      <img 
+        :src="zoomedImage" 
+        class="zoomed-image"
+        @click="closeZoom"
+      />
+    </div>
   </div>
 </template>
 
@@ -264,6 +276,8 @@ onMounted(async () => {
   max-width: 900px;
   margin: 0 auto;
   padding: 40px 20px;
+  position: relative;
+  z-index: 2;
 }
 
 /* 加载状态容器：居中显示 */
@@ -582,7 +596,7 @@ onMounted(async () => {
   margin-bottom: 40px;
   border: 3px solid rgba(0, 255, 0, 0.5);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
   position: relative;
 }
@@ -590,11 +604,17 @@ onMounted(async () => {
 /* 封面图样式 */
 .cover-image {
   width: 100%;
+  max-width: 100%;
+  max-height: 65vh;
   height: auto;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  margin: 0 auto;
   min-height: 400px;
   transition: all 0.3s ease;
+  cursor: zoom-in;
+  border: 2px solid rgba(0, 255, 0, 0.3);
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
 }
 
 /* 封面图悬停效果 */
@@ -609,6 +629,28 @@ onMounted(async () => {
   font-family: 'Rajdhani', 'Segoe UI', sans-serif;
   font-size: 1.1rem;
   letter-spacing: 0.5px;
+}
+
+/* Markdown 内容中的图片样式 */
+.post-body :deep(.markdown-content img) {
+  max-width: 100%;
+  max-height: 65vh;
+  width: auto;
+  height: auto;
+  display: block;
+  margin: 20px auto;
+  cursor: zoom-in;
+  border: 2px solid rgba(0, 255, 0, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+  transition: all 0.3s ease;
+  object-fit: contain;
+}
+
+.post-body :deep(.markdown-content img:hover) {
+  border-color: #00ff00;
+  box-shadow: 0 0 25px rgba(0, 255, 0, 0.4);
+  transform: scale(1.01);
 }
 
 /* 图片画廊容器 */
@@ -631,12 +673,17 @@ onMounted(async () => {
 /* 单张图片样式 */
 .post-image {
   width: 100%;
+  max-width: 100%;
+  max-height: 65vh;
   height: auto;
   border-radius: 8px;
   border: 2px solid rgba(0, 255, 0, 0.4);
   transition: all 0.3s ease;
-  cursor: pointer;
-  object-fit: cover;
+  cursor: zoom-in;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
 }
 
 /* 图片悬停效果 */
@@ -733,5 +780,44 @@ onMounted(async () => {
   color: #ff0000;
   text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
   text-align: center;
+}
+
+/* 图片缩放遮罩层 */
+.zoom-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.95);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: zoom-out;
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* 缩放后的图片 */
+.zoomed-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border: 3px solid #00ff00;
+  box-shadow: 0 0 50px rgba(0, 255, 0, 0.5), 0 0 100px rgba(0, 255, 0, 0.3);
+  border-radius: 12px;
+  cursor: zoom-out;
+  animation: zoomIn 0.3s ease-in;
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

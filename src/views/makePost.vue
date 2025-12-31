@@ -49,6 +49,37 @@ const coverPreview = ref('')
 const uploadingCover = ref(false)
 const showCoverPreview = ref(false)
 
+const copyNotifications = ref([])
+
+function copyImageUrl(url) {
+  if (url) {
+    navigator.clipboard.writeText(url).then(() => {
+      showCopyNotification(url)
+    }).catch(err => {
+      console.error('复制失败:', err)
+      alert('复制失败，请手动复制')
+    })
+  } else {
+    alert('图片正在上传中，请稍后再试')
+  }
+}
+
+function showCopyNotification(url) {
+  const notification = {
+    id: Date.now(),
+    url: url,
+    message: 'URL已复制到剪贴板'
+  }
+  copyNotifications.value.push(notification)
+  
+  setTimeout(() => {
+    const index = copyNotifications.value.findIndex(n => n.id === notification.id)
+    if (index > -1) {
+      copyNotifications.value.splice(index, 1)
+    }
+  }, 3000)
+}
+
 async function loadAllTags() {
   try {
     const { data, error } = await supabase
@@ -249,6 +280,20 @@ async function loadPostData() {
         tags: Array.isArray(data.tags) ? data.tags.join(', ') : ''
       }
       selectedTags.value = Array.isArray(data.tags) ? [...data.tags] : []
+      
+      if (data.image_url) {
+        if (data.image_url.cover) {
+          coverPreview.value = data.image_url.cover
+        }
+        if (data.image_url.images && Array.isArray(data.image_url.images)) {
+          data.image_url.images.forEach(url => {
+            imagePreviews.value.push(url)
+            uploadedImageUrls.value.push(url)
+            selectedFiles.value.push(null)
+          })
+        }
+      }
+      
       console.log('✨ [神圣机械日志] 圣典加载成功:', formData.value)
     }
   } catch (error) {
@@ -359,22 +404,80 @@ function insertTable() {
 
 function handleFileSelect(event) {
   const files = Array.from(event.target.files)
-  selectedFiles.value = [...selectedFiles.value, ...files]
   
-  files.forEach(file => {
+  files.forEach((file, fileIndex) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       imagePreviews.value.push(e.target.result)
     }
     reader.readAsDataURL(file)
+    
+    selectedFiles.value.push(file)
+    uploadedImageUrls.value.push(null)
+    
+    const index = uploadedImageUrls.value.length - 1
+    uploadSingleImage(file, index)
   })
   
   event.target.value = ''
 }
 
-function removeImage(index) {
+async function uploadSingleImage(file, index) {
+  try {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`
+    const filePath = `${fileName}`
+
+    console.log('⚙️ [神圣机械日志] 正在上传图片:', fileName)
+
+    const { data, error } = await supabase.storage
+      .from('post-images')
+      .upload(filePath, file)
+
+    if (error) {
+      console.error('☠️ [异端警告] 图片上传失败！', error)
+      throw error
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('post-images')
+      .getPublicUrl(filePath)
+
+    uploadedImageUrls.value[index] = publicUrl
+    console.log('✨ [神圣机械日志] 图片上传成功:', publicUrl)
+    
+    return publicUrl
+  } catch (error) {
+    console.error('☠️ [异端警告] 图片上传失败！', error)
+    message.value = '图片上传失败：' + error.message
+    messageType.value = 'error'
+    throw error
+  }
+}
+
+async function removeImage(index) {
+  const url = uploadedImageUrls.value[index]
+  
+  if (url && isEditMode.value) {
+    try {
+      const fileName = url.split('/').pop()
+      const { error } = await supabase.storage
+        .from('post-images')
+        .remove([fileName])
+      
+      if (error) {
+        console.error('☠️ [异端警告] 删除图片失败！', error)
+      } else {
+        console.log('✨ [神圣机械日志] 图片已删除:', fileName)
+      }
+    } catch (error) {
+      console.error('☠️ [异端警告] 删除图片失败！', error)
+    }
+  }
+  
   selectedFiles.value.splice(index, 1)
   imagePreviews.value.splice(index, 1)
+  uploadedImageUrls.value.splice(index, 1)
 }
 
 function handleCoverSelect(event) {
@@ -389,13 +492,30 @@ function handleCoverSelect(event) {
   reader.readAsDataURL(file)
 }
 
-function removeCover() {
+async function removeCover() {
+  if (coverPreview.value && isEditMode.value) {
+    try {
+      const fileName = coverPreview.value.split('/').pop()
+      const { error } = await supabase.storage
+        .from('post-images')
+        .remove([fileName])
+      
+      if (error) {
+        console.error('☠️ [异端警告] 删除封面失败！', error)
+      } else {
+        console.log('✨ [神圣机械日志] 封面已删除:', fileName)
+      }
+    } catch (error) {
+      console.error('☠️ [异端警告] 删除封面失败！', error)
+    }
+  }
+  
   coverFile.value = null
   coverPreview.value = ''
   event.target.value = ''
 }
 
-async function uploadCover() {
+async function uploadCover(postId) {
   if (!coverFile.value) {
     return null
   }
@@ -403,7 +523,7 @@ async function uploadCover() {
   uploadingCover.value = true
   try {
     const fileExt = coverFile.value.name.split('.').pop()
-    const fileName = `cover-${Date.now()}.${fileExt}`
+    const fileName = `post-${postId}-cover-${Date.now()}.${fileExt}`
     const filePath = `${fileName}`
 
     console.log('⚙️ [神圣机械日志] 正在上传封面图:', fileName)
@@ -433,8 +553,10 @@ async function uploadCover() {
   }
 }
 
-async function uploadImages() {
-  if (selectedFiles.value.length === 0) {
+async function uploadImages(postId) {
+  const newFiles = selectedFiles.value.filter(file => file !== null)
+  
+  if (newFiles.length === 0) {
     return []
   }
 
@@ -442,10 +564,10 @@ async function uploadImages() {
   const urls = []
 
   try {
-    for (let i = 0; i < selectedFiles.value.length; i++) {
-      const file = selectedFiles.value[i]
+    for (let i = 0; i < newFiles.length; i++) {
+      const file = newFiles[i]
       const fileExt = file.name.split('.').pop()
-      const fileName = `${Date.now()}-${i}.${fileExt}`
+      const fileName = `post-${postId}-image-${Date.now()}-${i}.${fileExt}`
       const filePath = `${fileName}`
 
       console.log('⚙️ [神圣机械日志] 正在上传图片:', fileName)
@@ -467,6 +589,7 @@ async function uploadImages() {
       console.log('✨ [神圣机械日志] 图片上传成功:', publicUrl)
     }
 
+    uploadedImageUrls.value = urls
     return urls
   } catch (error) {
     console.error('☠️ [异端警告] 图片上传失败！', error)
@@ -493,24 +616,59 @@ async function handleSubmit() {
   try {
     const tagsArray = [...selectedTags.value]
     
+    let postId
+    if (isEditMode.value) {
+      postId = parseInt(route.params.id)
+    } else {
+      console.log('⚙️ [神圣机械日志] 正在查询圣典库中的最大编号...')
+      const { data: existingPosts, error: queryError } = await supabase
+        .from('posts')
+        .select('id')
+        .order('id', { ascending: false })
+        .limit(1)
+
+      if (queryError) throw queryError
+
+      postId = 1
+      if (existingPosts && existingPosts.length > 0) {
+        const maxId = existingPosts[0].id
+        postId = maxId + 1
+      }
+      console.log('⚙️ [神圣机械日志] 新圣典编号已确定:', postId)
+    }
+    
     console.log('⚙️ [神圣机械日志] 开始上传封面图...')
-    const coverUrl = await uploadCover()
+    const coverUrl = await uploadCover(postId)
     console.log('✨ [神圣机械日志] 封面上传完成:', coverUrl)
     
     console.log('⚙️ [神圣机械日志] 开始上传图片...')
-    const imageUrls = await uploadImages()
+    const imageUrls = await uploadImages(postId)
     console.log('✨ [神圣机械日志] 图片上传完成，共', imageUrls.length, '张')
 
     const imageData = {}
     if (coverUrl) {
       imageData.cover = coverUrl
     }
-    if (imageUrls.length > 0) {
-      imageData.images = imageUrls
+    
+    if (isEditMode.value) {
+      const existingUrls = uploadedImageUrls.value.filter(url => url !== null)
+      if (existingUrls.length > 0) {
+        imageData.images = existingUrls
+      }
+      if (imageUrls.length > 0) {
+        if (imageData.images) {
+          imageData.images = [...imageData.images, ...imageUrls]
+        } else {
+          imageData.images = imageUrls
+        }
+      }
+    } else {
+      if (imageUrls.length > 0) {
+        imageData.images = imageUrls
+      }
     }
 
     if (isEditMode.value) {
-      const postId = parseInt(route.params.id)
       const updateData = {
         title: formData.value.title,
         category: formData.value.category,
@@ -584,25 +742,8 @@ async function handleSubmit() {
         router.push(`/post/${postId}`)
       }, 1500)
     } else {
-      console.log('⚙️ [神圣机械日志] 正在查询圣典库中的最大编号...')
-      const { data: existingPosts, error: queryError } = await supabase
-        .from('posts')
-        .select('id')
-        .order('id', { ascending: false })
-        .limit(1)
-
-      if (queryError) throw queryError
-
-      let newId = 1
-      if (existingPosts && existingPosts.length > 0) {
-        const maxId = existingPosts[0].id
-        newId = maxId + 1
-      }
-
-      console.log('⚙️ [神圣机械日志] 新圣典编号已确定:', newId)
-
       const postData = {
-        id: newId,
+        id: postId,
         title: formData.value.title,
         category: formData.value.category,
         summary: formData.value.summary,
@@ -806,8 +947,17 @@ async function handleSubmit() {
                 <img :src="preview" alt="预览" />
                 <button 
                   type="button" 
+                  class="copy-image-url-btn"
+                  @click="copyImageUrl(uploadedImageUrls[index])"
+                  title="复制图片URL"
+                >
+                  🔗
+                </button>
+                <button 
+                  type="button" 
                   class="remove-image-btn"
                   @click="removeImage(index)"
+                  title="删除图片"
                 >
                   ×
                 </button>
@@ -950,6 +1100,11 @@ async function handleSubmit() {
 
         <div v-if="message" :class="['message', messageType]">
           {{ message }}
+        </div>
+        
+        <div v-for="notification in copyNotifications" :key="notification.id" class="copy-notification">
+          <p>{{ notification.message }}</p>
+          <p class="url-preview">{{ notification.url }}</p>
         </div>
       </form>
     </section>
@@ -1619,6 +1774,32 @@ async function handleSubmit() {
   transform: scale(1.05);
 }
 
+.copy-image-url-btn {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 255, 0, 0.8);
+  border: 2px solid #00ff00;
+  color: #0a0a0a;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.copy-image-url-btn:hover {
+  background: #00ff00;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+  transform: scale(1.1);
+}
+
 .remove-image-btn {
   position: absolute;
   top: 5px;
@@ -1644,6 +1825,48 @@ async function handleSubmit() {
   background: #ff0000;
   box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
   transform: scale(1.1);
+}
+
+.copy-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  background: rgba(0, 40, 0, 0.95);
+  border: 2px solid #00ff00;
+  border-radius: 8px;
+  color: #00ff00;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+  backdrop-filter: blur(10px);
+  animation: slideInRight 0.3s ease;
+  z-index: 2000;
+  min-width: 300px;
+}
+
+.copy-notification p {
+  margin: 5px 0;
+}
+
+.copy-notification .url-preview {
+  font-size: 12px;
+  color: rgba(0, 255, 0, 0.7);
+  word-break: break-all;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .cover-upload-section {
