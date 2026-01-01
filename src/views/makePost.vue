@@ -48,7 +48,12 @@ const imageSizes = ref([])
 const coverFile = ref(null)
 const coverPreview = ref('')
 const uploadingCover = ref(false)
-const showCoverPreview = ref(false)
+const coverSize = ref('none')
+const showCardPreview = ref(false)
+const coverPosition = ref({ x: 0, y: 0 })
+const coverScale = ref(1)
+const isDraggingCover = ref(false)
+const dragStart = ref({ x: 0, y: 0 })
 
 const copyNotifications = ref([])
 
@@ -78,6 +83,36 @@ function copyImageUrl(url, index) {
     })
   } else {
     console.warn('⚠️ [警告] URL 为空，图片可能正在上传中')
+    alert('图片正在上传中，请稍后再试')
+  }
+}
+
+function copyCoverUrl(url) {
+  console.log('⚙️ [神圣机械日志] 点击复制封面按钮，URL:', url)
+  if (url) {
+    const size = coverSize.value || 'none'
+    let contentToCopy = url
+    
+    if (size !== 'none') {
+      const widthMap = {
+        'small': 300,
+        'medium': 600,
+        'large': 900
+      }
+      const width = widthMap[size] || 600
+      contentToCopy = `<img src="${url}" width="${width}" />`
+    }
+    
+    console.log('✨ [神圣机械日志] 复制内容:', contentToCopy)
+    navigator.clipboard.writeText(contentToCopy).then(() => {
+      console.log('✨ [神圣机械日志] 封面复制成功，准备显示通知')
+      showCopyNotification(contentToCopy)
+    }).catch(err => {
+      console.error('☠️ [异端警告] 复制失败:', err)
+      alert('复制失败，请手动复制')
+    })
+  } else {
+    console.warn('⚠️ [警告] 封面 URL 为空，图片可能正在上传中')
     alert('图片正在上传中，请稍后再试')
   }
 }
@@ -305,7 +340,12 @@ async function loadPostData() {
       
       if (data.image_url) {
         if (data.image_url.cover) {
-          coverPreview.value = data.image_url.cover
+          const coverData = typeof data.image_url.cover === 'string' 
+            ? { url: data.image_url.cover, position: { x: 0, y: 0 }, scale: 1 }
+            : data.image_url.cover
+          coverPreview.value = coverData.url
+          coverPosition.value = coverData.position || { x: 0, y: 0 }
+          coverScale.value = coverData.scale || 1
         }
         if (data.image_url.images && Array.isArray(data.image_url.images)) {
           data.image_url.images.forEach(imageData => {
@@ -511,16 +551,42 @@ async function removeImage(index) {
   imageSizes.value.splice(index, 1)
 }
 
-function handleCoverSelect(event) {
+async function handleCoverSelect(event) {
   const file = event.target.files[0]
   if (!file) return
 
   coverFile.value = file
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    coverPreview.value = e.target.result
+  uploadingCover.value = true
+  
+  try {
+    const fileExt = file.name.split('.').pop()
+    const fileName = `temp-cover-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`
+    const filePath = `${fileName}`
+
+    console.log('⚙️ [神圣机械日志] 正在上传封面:', fileName)
+
+    const { data, error } = await supabase.storage
+      .from('post-images')
+      .upload(filePath, file)
+
+    if (error) {
+      console.error('☠️ [异端警告] 封面上传失败！', error)
+      throw error
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('post-images')
+      .getPublicUrl(filePath)
+
+    coverPreview.value = publicUrl
+    console.log('✨ [神圣机械日志] 封面上传成功:', publicUrl)
+  } catch (error) {
+    console.error('☠️ [异端警告] 封面上传失败！', error)
+    message.value = '封面上传失败：' + error.message
+    messageType.value = 'error'
+  } finally {
+    uploadingCover.value = false
   }
-  reader.readAsDataURL(file)
 }
 
 async function removeCover() {
@@ -543,7 +609,42 @@ async function removeCover() {
   
   coverFile.value = null
   coverPreview.value = ''
+  coverPosition.value = { x: 0, y: 0 }
   event.target.value = ''
+}
+
+function startDragCover(event) {
+  isDraggingCover.value = true
+  dragStart.value = {
+    x: event.clientX - coverPosition.value.x,
+    y: event.clientY - coverPosition.value.y
+  }
+  event.preventDefault()
+}
+
+function onDragCover(event) {
+  if (!isDraggingCover.value) return
+  
+  coverPosition.value = {
+    x: event.clientX - dragStart.value.x,
+    y: event.clientY - dragStart.value.y
+  }
+}
+
+function stopDragCover() {
+  isDraggingCover.value = false
+}
+
+function resetCoverPosition() {
+  coverPosition.value = { x: 0, y: 0 }
+  coverScale.value = 1
+}
+
+function zoomCover(delta) {
+  const newScale = coverScale.value + delta
+  if (newScale >= 0.5 && newScale <= 3) {
+    coverScale.value = newScale
+  }
 }
 
 async function uploadCover(postId) {
@@ -675,7 +776,17 @@ async function handleSubmit() {
 
     const imageData = {}
     if (coverUrl) {
-      imageData.cover = coverUrl
+      imageData.cover = {
+        url: coverUrl,
+        position: coverPosition.value,
+        scale: coverScale.value
+      }
+    } else if (isEditMode.value && coverPreview.value) {
+      imageData.cover = {
+        url: coverPreview.value,
+        position: coverPosition.value,
+        scale: coverScale.value
+      }
     }
     
     const imagesWithSizes = []
@@ -923,33 +1034,44 @@ async function handleSubmit() {
               <span v-else>⏳ 上传中...</span>
             </button>
             
-            <div v-if="coverPreview" class="cover-preview-container">
-              <img :src="coverPreview" alt="封面预览" class="cover-preview" />
-              <button 
-                type="button" 
-                class="remove-cover-btn"
-                @click="removeCover"
-              >
-                ×
-              </button>
-              <button 
-                type="button" 
-                class="preview-toggle-btn"
-                @click="showCoverPreview = !showCoverPreview"
-              >
-                {{ showCoverPreview ? '🔍 隐藏预览' : '👁️ 预览封面' }}
-              </button>
-            </div>
+            <button 
+              type="button" 
+              class="preview-card-btn"
+              @click="showCardPreview = true"
+              :disabled="!formData.title"
+            >
+              👁️ 预览卡片
+            </button>
             
-            <div v-if="showCoverPreview && coverPreview" class="cover-full-preview">
-              <img :src="coverPreview" alt="封面全屏预览" />
-              <button 
-                type="button" 
-                class="close-preview-btn"
-                @click="showCoverPreview = false"
-              >
-                ×
-              </button>
+            <div v-if="coverPreview" class="cover-preview-item">
+              <img :src="coverPreview" alt="封面预览" />
+              <div class="cover-controls">
+                <select 
+                  v-model="coverSize" 
+                  class="cover-size-selector"
+                >
+                  <option value="none">无</option>
+                  <option value="small">小</option>
+                  <option value="medium">中</option>
+                  <option value="large">大</option>
+                </select>
+                <button 
+                  type="button" 
+                  class="copy-cover-url-btn"
+                  @click="copyCoverUrl(coverPreview)"
+                  title="复制封面URL"
+                >
+                  🔗
+                </button>
+                <button 
+                  type="button" 
+                  class="remove-cover-btn"
+                  @click="removeCover"
+                  title="删除封面"
+                >
+                  ×
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1161,6 +1283,57 @@ async function handleSubmit() {
         <p class="url-preview">{{ notification.url }}</p>
       </div>
     </section>
+    
+    <div v-if="showCardPreview" class="card-preview-overlay" @click.self="showCardPreview = false">
+      <div class="card-preview-container">
+        <div class="card-preview-header">
+          <h3>文章卡片预览</h3>
+          <button class="close-preview-btn" @click="showCardPreview = false">×</button>
+        </div>
+        
+        <div class="post-card-preview">
+          <div v-if="coverPreview" class="post-image-preview">
+            <div 
+              class="cover-image-wrapper"
+              @mousedown="startDragCover"
+              @mousemove="onDragCover"
+              @mouseup="stopDragCover"
+              @mouseleave="stopDragCover"
+            >
+              <img 
+                :src="coverPreview" 
+                alt="封面预览" 
+                class="preview-image"
+                :style="{ 
+                  transform: `translate(${coverPosition.x}px, ${coverPosition.y}px) scale(${coverScale})` 
+                }"
+              />
+            </div>
+            <div class="cover-controls">
+              <button class="zoom-btn" @click="zoomCover(-0.1)">➖</button>
+              <span class="zoom-level">{{ Math.round(coverScale * 100) }}%</span>
+              <button class="zoom-btn" @click="zoomCover(0.1)">➕</button>
+              <button class="reset-position-btn" @click="resetCoverPosition">↺ 重置</button>
+            </div>
+          </div>
+          
+          <div class="post-header">
+            <span class="post-category">{{ formData.category || '未分类' }}</span>
+            <span class="post-date">{{ new Date().toLocaleDateString('zh-CN') }}</span>
+          </div>
+          
+          <h4 class="post-title">{{ formData.title || '文章标题' }}</h4>
+          <p class="post-excerpt">{{ formData.summary || '文章摘要...' }}</p>
+          
+          <div class="post-tags">
+            <span v-for="tag in selectedTags" :key="tag" class="tag">{{ tag }}</span>
+            <span v-if="selectedTags.length === 0" class="tag">暂无标签</span>
+          </div>
+          
+          <a href="#" class="read-more">阅读更多</a>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1969,21 +2142,66 @@ async function handleSubmit() {
   margin-top: 10px;
 }
 
-.cover-preview-container {
+.cover-preview-item {
   position: relative;
-  margin-top: 15px;
-  display: inline-block;
   border: 2px solid rgba(0, 255, 0, 0.3);
   border-radius: 8px;
   overflow: hidden;
+  aspect-ratio: 1;
   background: rgba(0, 20, 0, 0.6);
+  width: 150px;
+  margin-top: 15px;
 }
 
-.cover-preview {
-  max-width: 400px;
-  max-height: 300px;
-  display: block;
+.cover-preview-item img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.cover-preview-item:hover img {
+  transform: scale(1.05);
+}
+
+.cover-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgba(0, 255, 0, 0.3);
+}
+
+.copy-cover-url-btn {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 255, 0, 0.8);
+  border: 2px solid #00ff00;
+  color: #0a0a0a;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.copy-cover-url-btn:hover {
+  background: #00ff00;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
+  transform: scale(1.1);
 }
 
 .remove-cover-btn {
@@ -2013,79 +2231,48 @@ async function handleSubmit() {
   transform: scale(1.1);
 }
 
-.preview-toggle-btn {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 20px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 2px solid #00ff00;
+.cover-size-selector {
+  background: rgba(0, 20, 0, 0.9);
+  border: 1px solid #00ff00;
   color: #00ff00;
+  padding: 4px 8px;
+  border-radius: 4px;
   font-family: 'Orbitron', 'Rajdhani', sans-serif;
   font-size: 12px;
-  font-weight: 600;
   cursor: pointer;
-  border-radius: 20px;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(5px);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.preview-toggle-btn:hover {
-  background: #00ff00;
-  color: #0a0a0a;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
-}
-
-.cover-full-preview {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.95);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-}
-
-.cover-full-preview img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border: 3px solid #00ff00;
-  border-radius: 10px;
-  box-shadow: 0 0 50px rgba(0, 255, 0, 0.5);
-}
-
-.close-preview-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 50px;
-  height: 50px;
-  background: rgba(255, 0, 0, 0.8);
-  border: 3px solid #ff0000;
-  color: #ffffff;
-  font-size: 30px;
-  font-weight: bold;
-  line-height: 1;
-  cursor: pointer;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  outline: none;
   transition: all 0.3s ease;
 }
 
-.close-preview-btn:hover {
-  background: #ff0000;
-  box-shadow: 0 0 30px rgba(255, 0, 0, 0.8);
-  transform: scale(1.1);
+.cover-size-selector:hover {
+  background: rgba(0, 40, 0, 0.9);
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.cover-size-selector:focus {
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+
+.cover-size-selector option {
+  background: #0a0a0a;
+  color: #00ff00;
+}
+
+.cover-preview-container {
+  position: relative;
+  margin-top: 15px;
+  display: inline-block;
+  border: 2px solid rgba(0, 255, 0, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 20, 0, 0.6);
+}
+
+.cover-preview {
+  max-width: 400px;
+  max-height: 300px;
+  display: block;
+  object-fit: cover;
 }
 
 @media (max-width: 768px) {
@@ -2098,15 +2285,403 @@ async function handleSubmit() {
     padding: 10px 20px;
     font-size: 12px;
   }
+}
 
-  .cover-preview {
-    max-width: 100%;
-    max-height: 200px;
-  }
+.preview-card-btn {
+  padding: 10px 20px;
+  background: rgba(0, 40, 0, 0.9);
+  border: 2px solid #00ffff;
+  color: #00ffff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-left: 10px;
+}
 
-  .preview-toggle-btn {
-    font-size: 10px;
-    padding: 6px 15px;
+.preview-card-btn:hover:not(:disabled) {
+  background: rgba(0, 60, 0, 0.9);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+.preview-card-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.card-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
+  to {
+    opacity: 1;
+  }
+}
+
+.card-preview-container {
+  background: rgba(0, 0, 0, 0.95);
+  border: 2px solid #00ff00;
+  border-radius: 12px;
+  padding: 30px;
+  max-width: 400px;
+  width: 90%;
+  animation: slideUp 0.3s ease;
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.card-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(0, 255, 0, 0.3);
+}
+
+.card-preview-header h3 {
+  margin: 0;
+  color: #00ff00;
+  font-size: 1.2rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.close-preview-btn {
+  background: transparent;
+  border: 2px solid #ff0000;
+  color: #ff0000;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.close-preview-btn:hover {
+  background: #ff0000;
+  color: #000;
+  box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+  transform: rotate(90deg);
+}
+
+.post-card-preview {
+  background: rgba(0, 0, 0, 0.95);
+  border: 1px solid #00ff00;
+  padding: 30px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  transform: skewX(-2deg);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.post-card-preview::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.post-card-preview:hover::before {
+  left: 100%;
+}
+
+.post-card-preview:hover {
+  transform: skewX(-2deg) translateY(-5px);
+  box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+  border-color: #00ffff;
+}
+
+.post-card-preview .post-image-preview {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 2px solid rgba(0, 255, 0, 0.3);
+}
+
+.post-card-preview .cover-image-wrapper {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: move;
+  position: relative;
+}
+
+.post-card-preview .cover-image-wrapper:active {
+  cursor: grabbing;
+}
+
+.post-card-preview .preview-image {
+  width: auto;
+  height: auto;
+  min-width: 100%;
+  min-height: 100%;
+  object-fit: none;
+  transition: transform 0.1s ease;
+  user-select: none;
+  pointer-events: none;
+  position: relative;
+}
+
+.post-card-preview .cover-controls {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.post-card-preview .zoom-btn {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post-card-preview .zoom-btn:hover {
+  background: #00ff00;
+  color: #000;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.post-card-preview .zoom-level {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  min-width: 45px;
+  text-align: center;
+}
+
+.post-card-preview .reset-position-btn {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+}
+
+.post-card-preview .reset-position-btn:hover {
+  background: #00ff00;
+  color: #000;
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.post-card-preview .post-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.post-card-preview .post-category {
+  color: #ff00ff;
+  text-shadow: 0 0 8px #ff00ff, 0 0 15px #ff00ff;
+  font-weight: 600;
+  position: relative;
+}
+
+.post-card-preview .post-category::after {
+  content: '>';
+  margin-left: 5px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+.post-card-preview .post-date {
+  color: #00ffff;
+  text-shadow: 0 0 8px #00ffff, 0 0 15px #00ffff;
+  font-weight: 500;
+}
+
+.post-card-preview .post-title {
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  color: #00ff00;
+  font-weight: 600;
+  letter-spacing: 1px;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  position: relative;
+  display: inline-block;
+  transform: skewX(2deg);
+}
+
+.post-card-preview .post-title::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #00ff00;
+  transition: width 0.3s ease;
+}
+
+.post-card-preview:hover .post-title::after {
+  width: 100%;
+}
+
+.post-card-preview .post-excerpt {
+  color: #cccccc;
+  line-height: 1.8;
+  margin-bottom: 20px;
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+  font-size: 0.95rem;
+}
+
+.post-card-preview .post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.post-card-preview .tag {
+  background-color: transparent;
+  color: #00ff00;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  border: 2px solid #00ff00;
+  transition: all 0.3s ease;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.post-card-preview .tag::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.post-card-preview .tag:hover::before {
+  left: 100%;
+}
+
+.post-card-preview .tag:hover {
+  background-color: #00ff00;
+  color: #0a0a0a;
+  box-shadow: 0 0 20px #00ff00;
+  transform: translateY(-2px) scale(1.05);
+}
+
+.post-card-preview .read-more {
+  color: #00ffff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: inline-block;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  padding-right: 20px;
+  transform: skewX(2deg);
+}
+
+.post-card-preview .read-more::after {
+  content: '→';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: transform 0.3s ease;
+}
+
+.post-card-preview .read-more:hover {
+  color: #00ff00;
+  text-shadow: 0 0 10px #00ff00;
+  transform: skewX(2deg) translateX(5px);
+}
+
+.post-card-preview .read-more:hover::after {
+  transform: translateY(-50%) translateX(5px);
 }
 </style>

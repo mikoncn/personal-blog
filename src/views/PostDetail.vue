@@ -242,10 +242,10 @@ onUnmounted(() => {
         <!-- 封面图 -->
         <div v-if="post.image_url && post.image_url.cover" class="post-cover">
           <img 
-            :src="post.image_url.cover" 
+            :src="typeof post.image_url.cover === 'string' ? post.image_url.cover : post.image_url.cover.url" 
             :alt="post.title" 
             class="cover-image" 
-            @click="openZoom(post.image_url.cover)"
+            @click="openZoom(typeof post.image_url.cover === 'string' ? post.image_url.cover : post.image_url.cover.url)"
           />
         </div>
         

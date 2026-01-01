@@ -19,11 +19,18 @@
       >
         <!-- 图片预览 - 只在有封面图时显示 -->
         <div v-if="post.image_url && post.image_url.cover" class="post-image-preview">
-          <img 
-            :src="post.image_url.cover" 
-            :alt="post.title" 
-            class="preview-image" 
-          />
+          <div class="cover-image-wrapper">
+            <img 
+              :src="typeof post.image_url.cover === 'string' ? post.image_url.cover : post.image_url.cover.url"
+              :alt="post.title" 
+              class="preview-image"
+              :style="{
+                transform: typeof post.image_url.cover === 'object' 
+                  ? `translate(${post.image_url.cover.position?.x || 0}px, ${post.image_url.cover.position?.y || 0}px) scale(${post.image_url.cover.scale || 1})` 
+                  : 'translate(0, 0) scale(1)'
+              }"
+            />
+          </div>
         </div>
         
         <div class="post-header">
@@ -175,17 +182,23 @@ onMounted(async () => {
   border: 2px solid rgba(0, 255, 0, 0.3);
 }
 
-/* 预览图片 */
-.preview-image {
+.cover-image-wrapper {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
 }
 
-/* 悬停时图片放大效果 */
-.post-card:hover .preview-image {
-  transform: scale(1.1);
+/* 预览图片 */
+.preview-image {
+  width: auto;
+  height: auto;
+  min-width: 100%;
+  min-height: 100%;
+  object-fit: none;
+  transition: transform 0.1s ease;
+  user-select: none;
+  position: relative;
 }
 
 /* 图片数量标记 */
