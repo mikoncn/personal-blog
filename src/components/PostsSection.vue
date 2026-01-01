@@ -17,10 +17,10 @@
         class="post-card"
         @click="goToPost(post.id)"
       >
-        <!-- 图片预览 -->
-        <div v-if="post.image_url && (post.image_url.cover || (post.image_url.images && post.image_url.images.length > 0))" class="post-image-preview">
+        <!-- 图片预览 - 只在有封面图时显示 -->
+        <div v-if="post.image_url && post.image_url.cover" class="post-image-preview">
           <img 
-            :src="post.image_url.cover || post.image_url.images[0]" 
+            :src="post.image_url.cover" 
             :alt="post.title" 
             class="preview-image" 
           />

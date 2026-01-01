@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../utils/supabase'
+import { cleanupTemporaryImages } from '../services/cleanupService'
 
 const router = useRouter()
 
@@ -42,6 +43,19 @@ async function handleLogin() {
       
       message.value = '访问权限已授予'
       messageType.value = 'success'
+      
+      // 清理临时图片
+      try {
+        console.log('⚙️ [登录系统] 正在清理临时图片...')
+        const cleanupResult = await cleanupTemporaryImages()
+        if (cleanupResult.success) {
+          console.log('✨ [登录系统] 临时图片清理完成，删除了', cleanupResult.deletedCount, '个文件')
+        } else {
+          console.warn('⚠️ [登录系统] 临时图片清理失败，但不影响登录', cleanupResult.error)
+        }
+      } catch (cleanupError) {
+        console.warn('⚠️ [登录系统] 临时图片清理异常，但不影响登录', cleanupError)
+      }
       
       setTimeout(() => {
         router.push('/')

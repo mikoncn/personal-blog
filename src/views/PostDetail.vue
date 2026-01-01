@@ -71,7 +71,8 @@ async function handleDelete() {
       }
       
       if (post.value.image_url.images && Array.isArray(post.value.image_url.images)) {
-        post.value.image_url.images.forEach(url => {
+        post.value.image_url.images.forEach(imageData => {
+          const url = typeof imageData === 'string' ? imageData : imageData.url
           const fileName = url.split('/').pop()
           filesToDelete.push(fileName)
           console.log('⚙️ [神圣机械日志] 准备删除图片:', fileName)
@@ -125,8 +126,9 @@ onMounted(async () => {
     const foundPost = await getPostById(postId)
     if (foundPost) {
       post.value = foundPost
-      formattedContent.value = renderMarkdown(foundPost.content)
       console.log('⚔️ [帝国防卫军日志] 圣典装载成功，标题:', foundPost.title)
+      console.log('⚔️ [帝国防卫军日志] 图片数据结构:', JSON.stringify(foundPost.image_url, null, 2))
+      formattedContent.value = renderMarkdown(foundPost.content)
     } else {
       error.value = '圣典未找到或已被异端摧毁'
       console.error('☠️ [异端警告] 圣典检索失败，ID:', postId)
@@ -216,21 +218,6 @@ onUnmounted(() => {
         
         <!-- 文章标题 -->
         <h1 class="post-title">{{ post.title }}</h1>
-        
-        <!-- 图片画廊 -->
-        <div v-if="post.image_url && post.image_url.images && post.image_url.images.length > 0" class="post-images">
-          <div class="image-grid">
-            <img 
-              v-for="(url, index) in post.image_url.images" 
-              :key="index" 
-              :src="url" 
-              :alt="`Image ${index + 1}`"
-              class="post-image"
-              loading="lazy"
-              @click="openZoom(url)"
-            />
-          </div>
-        </div>
         
         <!-- 文章正文内容（HTML格式） -->
         <div class="post-body markdown-content" v-html="formattedContent"></div>
@@ -596,9 +583,10 @@ onUnmounted(() => {
   margin-bottom: 40px;
   border: 3px solid rgba(0, 255, 0, 0.5);
   border-radius: 12px;
-  overflow: visible;
+  overflow: hidden;
   box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
   position: relative;
+  background: rgba(0, 0, 0, 0.3);
 }
 
 /* 封面图样式 */
@@ -609,12 +597,13 @@ onUnmounted(() => {
   height: auto;
   display: block;
   object-fit: contain;
-  margin: 0 auto;
+  margin: 0;
   min-height: 400px;
   transition: all 0.3s ease;
   cursor: zoom-in;
-  border: 2px solid rgba(0, 255, 0, 0.3);
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 /* 封面图悬停效果 */
@@ -653,46 +642,6 @@ onUnmounted(() => {
   transform: scale(1.01);
 }
 
-/* 图片画廊容器 */
-.post-images {
-  margin: 30px 0;
-  padding: 20px;
-  background: rgba(0, 20, 0, 0.5);
-  border: 2px solid rgba(0, 255, 0, 0.3);
-  border-radius: 10px;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
-}
-
-/* 图片网格布局 */
-.image-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-/* 单张图片样式 */
-.post-image {
-  width: 100%;
-  max-width: 100%;
-  max-height: 65vh;
-  height: auto;
-  border-radius: 8px;
-  border: 2px solid rgba(0, 255, 0, 0.4);
-  transition: all 0.3s ease;
-  cursor: zoom-in;
-  object-fit: contain;
-  margin: 0 auto;
-  display: block;
-  box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
-}
-
-/* 图片悬停效果 */
-.post-image:hover {
-  border-color: #00ff00;
-  box-shadow: 0 0 20px rgba(0, 255, 0, 0.6);
-  transform: scale(1.02);
-}
-
 /* 404页面容器：居中显示 */
 .not-found {
   text-align: center;
@@ -729,17 +678,6 @@ onUnmounted(() => {
   .back-button svg {
     width: 16px;
     height: 16px;
-  }
-
-  /* 图片画廊移动端适配 */
-  .post-images {
-    padding: 15px;
-    margin: 20px 0;
-  }
-
-  .image-grid {
-    grid-template-columns: 1fr;
-    gap: 15px;
   }
 
   /* 缩小文章标题 */

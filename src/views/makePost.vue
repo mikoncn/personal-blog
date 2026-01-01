@@ -43,6 +43,7 @@ const selectedFiles = ref([])
 const imagePreviews = ref([])
 const uploadingImages = ref(false)
 const uploadedImageUrls = ref([])
+const imageSizes = ref([])
 
 const coverFile = ref(null)
 const coverPreview = ref('')
@@ -286,10 +287,14 @@ async function loadPostData() {
           coverPreview.value = data.image_url.cover
         }
         if (data.image_url.images && Array.isArray(data.image_url.images)) {
-          data.image_url.images.forEach(url => {
+          data.image_url.images.forEach(imageData => {
+            const url = typeof imageData === 'string' ? imageData : imageData.url
+            const size = typeof imageData === 'string' ? 'medium' : imageData.size
+            
             imagePreviews.value.push(url)
             uploadedImageUrls.value.push(url)
             selectedFiles.value.push(null)
+            imageSizes.value.push(size)
           })
         }
       }
@@ -405,7 +410,7 @@ function insertTable() {
 function handleFileSelect(event) {
   const files = Array.from(event.target.files)
   
-  files.forEach((file, fileIndex) => {
+  files.forEach((file) => {
     const reader = new FileReader()
     reader.onload = (e) => {
       imagePreviews.value.push(e.target.result)
@@ -414,9 +419,7 @@ function handleFileSelect(event) {
     
     selectedFiles.value.push(file)
     uploadedImageUrls.value.push(null)
-    
-    const index = uploadedImageUrls.value.length - 1
-    uploadSingleImage(file, index)
+    imageSizes.value.push('medium')
   })
   
   event.target.value = ''
@@ -478,6 +481,7 @@ async function removeImage(index) {
   selectedFiles.value.splice(index, 1)
   imagePreviews.value.splice(index, 1)
   uploadedImageUrls.value.splice(index, 1)
+  imageSizes.value.splice(index, 1)
 }
 
 function handleCoverSelect(event) {
@@ -650,22 +654,35 @@ async function handleSubmit() {
       imageData.cover = coverUrl
     }
     
+    const imagesWithSizes = []
+    
     if (isEditMode.value) {
       const existingUrls = uploadedImageUrls.value.filter(url => url !== null)
-      if (existingUrls.length > 0) {
-        imageData.images = existingUrls
-      }
-      if (imageUrls.length > 0) {
-        if (imageData.images) {
-          imageData.images = [...imageData.images, ...imageUrls]
-        } else {
-          imageData.images = imageUrls
-        }
-      }
+      existingUrls.forEach((url, index) => {
+        imagesWithSizes.push({
+          url: url,
+          size: imageSizes.value[index] || 'medium'
+        })
+      })
+      
+      imageUrls.forEach((url, index) => {
+        const sizeIndex = uploadedImageUrls.value.filter(u => u !== null).length + index
+        imagesWithSizes.push({
+          url: url,
+          size: imageSizes.value[sizeIndex] || 'medium'
+        })
+      })
     } else {
-      if (imageUrls.length > 0) {
-        imageData.images = imageUrls
-      }
+      imageUrls.forEach((url, index) => {
+        imagesWithSizes.push({
+          url: url,
+          size: imageSizes.value[index] || 'medium'
+        })
+      })
+    }
+    
+    if (imagesWithSizes.length > 0) {
+      imageData.images = imagesWithSizes
     }
 
     if (isEditMode.value) {
@@ -945,22 +962,33 @@ async function handleSubmit() {
                 class="image-preview-item"
               >
                 <img :src="preview" alt="预览" />
-                <button 
-                  type="button" 
-                  class="copy-image-url-btn"
-                  @click="copyImageUrl(uploadedImageUrls[index])"
-                  title="复制图片URL"
-                >
-                  🔗
-                </button>
-                <button 
-                  type="button" 
-                  class="remove-image-btn"
-                  @click="removeImage(index)"
-                  title="删除图片"
-                >
-                  ×
-                </button>
+                <div class="image-controls">
+                  <select 
+                    v-model="imageSizes[index]" 
+                    class="image-size-selector"
+                    @change="updateImageSize(index, imageSizes[index])"
+                  >
+                    <option value="small">小</option>
+                    <option value="medium">中</option>
+                    <option value="large">大</option>
+                  </select>
+                  <button 
+                    type="button" 
+                    class="copy-image-url-btn"
+                    @click="copyImageUrl(uploadedImageUrls[index])"
+                    title="复制图片URL"
+                  >
+                    🔗
+                  </button>
+                  <button 
+                    type="button" 
+                    class="remove-image-btn"
+                    @click="removeImage(index)"
+                    title="删除图片"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1825,6 +1853,47 @@ async function handleSubmit() {
   background: #ff0000;
   box-shadow: 0 0 15px rgba(255, 0, 0, 0.6);
   transform: scale(1.1);
+}
+
+.image-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgba(0, 255, 0, 0.3);
+}
+
+.image-size-selector {
+  background: rgba(0, 20, 0, 0.9);
+  border: 1px solid #00ff00;
+  color: #00ff00;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.image-size-selector:hover {
+  background: rgba(0, 40, 0, 0.9);
+  box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+}
+
+.image-size-selector:focus {
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+}
+
+.image-size-selector option {
+  background: #0a0a0a;
+  color: #00ff00;
 }
 
 .copy-notification {
