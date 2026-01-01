@@ -417,15 +417,19 @@ function handleFileSelect(event) {
     }
     reader.readAsDataURL(file)
     
+    const index = selectedFiles.value.length
     selectedFiles.value.push(file)
     uploadedImageUrls.value.push(null)
     imageSizes.value.push('medium')
+    
+    uploadSingleImage(file, index)
   })
   
   event.target.value = ''
 }
 
 async function uploadSingleImage(file, index) {
+  uploadingImages.value = true
   try {
     const fileExt = file.name.split('.').pop()
     const fileName = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`
@@ -455,6 +459,8 @@ async function uploadSingleImage(file, index) {
     message.value = '图片上传失败：' + error.message
     messageType.value = 'error'
     throw error
+  } finally {
+    uploadingImages.value = false
   }
 }
 
@@ -558,51 +564,48 @@ async function uploadCover(postId) {
 }
 
 async function uploadImages(postId) {
-  const newFiles = selectedFiles.value.filter(file => file !== null)
+  const urls = uploadedImageUrls.value.filter(url => url !== null)
+  console.log('✨ [神圣机械日志] 开始转换临时图片为正式图片，共', urls.length, '张')
   
-  if (newFiles.length === 0) {
-    return []
-  }
-
-  uploadingImages.value = true
-  const urls = []
-
-  try {
-    for (let i = 0; i < newFiles.length; i++) {
-      const file = newFiles[i]
-      const fileExt = file.name.split('.').pop()
-      const fileName = `post-${postId}-image-${Date.now()}-${i}.${fileExt}`
-      const filePath = `${fileName}`
-
-      console.log('⚙️ [神圣机械日志] 正在上传图片:', fileName)
-
-      const { data, error } = await supabase.storage
-        .from('post-images')
-        .upload(filePath, file)
-
-      if (error) {
-        console.error('☠️ [异端警告] 图片上传失败！', error)
-        throw error
+  const finalUrls = []
+  
+  for (let i = 0; i < urls.length; i++) {
+    const tempUrl = urls[i]
+    const oldFileName = tempUrl.split('/').pop()
+    
+    if (oldFileName.startsWith('temp-')) {
+      const fileExt = oldFileName.split('.').pop()
+      const newFileName = `post-${postId}-image-${i + 1}-${Date.now()}.${fileExt}`
+      
+      console.log('⚙️ [神圣机械日志] 转换图片:', oldFileName, '->', newFileName)
+      
+      try {
+        const { data, error } = await supabase.storage
+          .from('post-images')
+          .move(oldFileName, newFileName)
+        
+        if (error) {
+          console.error('☠️ [异端警告] 图片转换失败！', error)
+          throw error
+        }
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(newFileName)
+        
+        finalUrls.push(publicUrl)
+        console.log('✨ [神圣机械日志] 图片转换成功:', publicUrl)
+      } catch (error) {
+        console.error('☠️ [异端警告] 图片转换失败，使用临时URL:', error)
+        finalUrls.push(tempUrl)
       }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('post-images')
-        .getPublicUrl(filePath)
-
-      urls.push(publicUrl)
-      console.log('✨ [神圣机械日志] 图片上传成功:', publicUrl)
+    } else {
+      finalUrls.push(tempUrl)
     }
-
-    uploadedImageUrls.value = urls
-    return urls
-  } catch (error) {
-    console.error('☠️ [异端警告] 图片上传失败！', error)
-    message.value = '图片上传失败：' + error.message
-    messageType.value = 'error'
-    throw error
-  } finally {
-    uploadingImages.value = false
   }
+  
+  console.log('✨ [神圣机械日志] 图片转换完成，共', finalUrls.length, '张')
+  return finalUrls
 }
 
 async function handleSubmit() {
@@ -656,41 +659,42 @@ async function handleSubmit() {
     
     const imagesWithSizes = []
     
-    if (isEditMode.value) {
-      const existingUrls = uploadedImageUrls.value.filter(url => url !== null)
-      existingUrls.forEach((url, index) => {
+    uploadedImageUrls.value.forEach((url, index) => {
+      if (url) {
+        const finalUrl = imageUrls.find(finalUrl => {
+          const oldFileName = url.split('/').pop()
+          const newFileName = finalUrl.split('/').pop()
+          return oldFileName.startsWith('temp-') && newFileName.includes(`post-${postId}-image-${index + 1}`)
+        }) || url
+        
         imagesWithSizes.push({
-          url: url,
+          url: finalUrl,
           size: imageSizes.value[index] || 'medium'
         })
-      })
-      
-      imageUrls.forEach((url, index) => {
-        const sizeIndex = uploadedImageUrls.value.filter(u => u !== null).length + index
-        imagesWithSizes.push({
-          url: url,
-          size: imageSizes.value[sizeIndex] || 'medium'
-        })
-      })
-    } else {
-      imageUrls.forEach((url, index) => {
-        imagesWithSizes.push({
-          url: url,
-          size: imageSizes.value[index] || 'medium'
-        })
-      })
-    }
+      }
+    })
     
     if (imagesWithSizes.length > 0) {
       imageData.images = imagesWithSizes
     }
+    
+    let content = formData.value.content
+    uploadedImageUrls.value.forEach((tempUrl, index) => {
+      if (tempUrl && tempUrl.includes('temp-')) {
+        const finalUrl = imageUrls[index]
+        if (finalUrl) {
+          content = content.replace(new RegExp(tempUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), finalUrl)
+          console.log('⚙️ [神圣机械日志] 替换文章内容中的图片 URL:', tempUrl, '->', finalUrl)
+        }
+      }
+    })
 
     if (isEditMode.value) {
       const updateData = {
         title: formData.value.title,
         category: formData.value.category,
         summary: formData.value.summary,
-        content: formData.value.content,
+        content: content,
         tags: tagsArray,
         user_id: currentUser.value.id,
         image_url: Object.keys(imageData).length > 0 ? imageData : null
@@ -764,7 +768,7 @@ async function handleSubmit() {
         title: formData.value.title,
         category: formData.value.category,
         summary: formData.value.summary,
-        content: formData.value.content,
+        content: content,
         tags: tagsArray,
         user_id: currentUser.value.id,
         image_url: Object.keys(imageData).length > 0 ? imageData : null
@@ -966,7 +970,6 @@ async function handleSubmit() {
                   <select 
                     v-model="imageSizes[index]" 
                     class="image-size-selector"
-                    @change="updateImageSize(index, imageSizes[index])"
                   >
                     <option value="small">小</option>
                     <option value="medium">中</option>

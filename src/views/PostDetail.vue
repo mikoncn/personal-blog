@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, inject, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, inject, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPostById } from '../services/postService'
 import { supabase } from '../utils/supabase'
@@ -19,6 +19,7 @@ const deleting = ref(false)
 const isLoggedIn = ref(false)
 
 const formattedContent = ref('')
+const markdownContentRef = ref(null)
 
 const zoomedImage = ref(null)
 const isZoomed = ref(false)
@@ -144,6 +145,38 @@ onMounted(async () => {
   window.addEventListener('keydown', handleEscape)
 })
 
+function setupImageZoom() {
+  console.log('⚙️ [神圣机械日志] 正在设置图片缩放功能...')
+  console.log('⚙️ [神圣机械日志] Markdown 内容引用:', markdownContentRef.value)
+  
+  if (markdownContentRef.value) {
+    const images = markdownContentRef.value.querySelectorAll('img')
+    console.log('⚙️ [神圣机械日志] 找到图片数量:', images.length)
+    
+    images.forEach((img, index) => {
+      console.log(`⚙️ [神圣机械日志] 图片 ${index}:`, img.src)
+      img.addEventListener('click', (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        console.log('⚙️ [神圣机械日志] 点击图片:', img.src)
+        openZoom(img.src)
+      })
+      
+      img.addEventListener('load', () => {
+        console.log('⚙️ [神圣机械日志] 图片加载完成:', img.src)
+      })
+    })
+  } else {
+    console.error('☠️ [异端警告] 未找到 Markdown 内容容器')
+  }
+}
+
+watch(formattedContent, () => {
+  nextTick(() => {
+    setupImageZoom()
+  })
+})
+
 onUnmounted(() => {
   window.removeEventListener('keydown', handleEscape)
   if (isZoomed.value) {
@@ -220,7 +253,7 @@ onUnmounted(() => {
         <h1 class="post-title">{{ post.title }}</h1>
         
         <!-- 文章正文内容（HTML格式） -->
-        <div class="post-body markdown-content" v-html="formattedContent"></div>
+        <div ref="markdownContentRef" class="post-body markdown-content" v-html="formattedContent"></div>
       </div>
       
       <!-- 文章未找到状态 -->
@@ -600,7 +633,7 @@ onUnmounted(() => {
   margin: 0;
   min-height: 400px;
   transition: all 0.3s ease;
-  cursor: zoom-in;
+  cursor: zoom-in !important;
   border: none;
   box-shadow: none;
   border-radius: 0;
@@ -621,14 +654,14 @@ onUnmounted(() => {
 }
 
 /* Markdown 内容中的图片样式 */
-.post-body :deep(.markdown-content img) {
+.post-body :deep(img) {
   max-width: 100%;
   max-height: 65vh;
   width: auto;
   height: auto;
   display: block;
   margin: 20px auto;
-  cursor: zoom-in;
+  cursor: zoom-in !important;
   border: 2px solid rgba(0, 255, 0, 0.3);
   border-radius: 8px;
   box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
@@ -636,7 +669,7 @@ onUnmounted(() => {
   object-fit: contain;
 }
 
-.post-body :deep(.markdown-content img:hover) {
+.post-body :deep(img:hover) {
   border-color: #00ff00;
   box-shadow: 0 0 25px rgba(0, 255, 0, 0.4);
   transform: scale(1.01);
