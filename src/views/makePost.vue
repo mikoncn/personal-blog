@@ -52,31 +52,52 @@ const showCoverPreview = ref(false)
 
 const copyNotifications = ref([])
 
-function copyImageUrl(url) {
+function copyImageUrl(url, index) {
+  console.log('⚙️ [神圣机械日志] 点击复制按钮，URL:', url, '索引:', index)
   if (url) {
-    navigator.clipboard.writeText(url).then(() => {
-      showCopyNotification(url)
+    const size = imageSizes.value[index] || 'medium'
+    let contentToCopy = url
+    
+    if (size !== 'none') {
+      const widthMap = {
+        'small': 300,
+        'medium': 600,
+        'large': 900
+      }
+      const width = widthMap[size] || 600
+      contentToCopy = `<img src="${url}" width="${width}" />`
+    }
+    
+    console.log('✨ [神圣机械日志] 复制内容:', contentToCopy)
+    navigator.clipboard.writeText(contentToCopy).then(() => {
+      console.log('✨ [神圣机械日志] 复制成功，准备显示通知')
+      showCopyNotification(contentToCopy)
     }).catch(err => {
-      console.error('复制失败:', err)
+      console.error('☠️ [异端警告] 复制失败:', err)
       alert('复制失败，请手动复制')
     })
   } else {
+    console.warn('⚠️ [警告] URL 为空，图片可能正在上传中')
     alert('图片正在上传中，请稍后再试')
   }
 }
 
-function showCopyNotification(url) {
+function showCopyNotification(content) {
+  console.log('⚙️ [神圣机械日志] 创建通知，当前通知数量:', copyNotifications.value.length)
+  const isHtmlTag = content.startsWith('<img')
   const notification = {
     id: Date.now(),
-    url: url,
-    message: 'URL已复制到剪贴板'
+    url: content,
+    message: isHtmlTag ? '图片标签已复制到剪贴板' : 'URL已复制到剪贴板'
   }
   copyNotifications.value.push(notification)
+  console.log('✨ [神圣机械日志] 通知已添加，通知数量:', copyNotifications.value.length)
   
   setTimeout(() => {
     const index = copyNotifications.value.findIndex(n => n.id === notification.id)
     if (index > -1) {
       copyNotifications.value.splice(index, 1)
+      console.log('⚙️ [神圣机械日志] 通知已移除')
     }
   }, 3000)
 }
@@ -420,7 +441,7 @@ function handleFileSelect(event) {
     const index = selectedFiles.value.length
     selectedFiles.value.push(file)
     uploadedImageUrls.value.push(null)
-    imageSizes.value.push('medium')
+    imageSizes.value.push('none')
     
     uploadSingleImage(file, index)
   })
@@ -971,6 +992,7 @@ async function handleSubmit() {
                     v-model="imageSizes[index]" 
                     class="image-size-selector"
                   >
+                    <option value="none">无</option>
                     <option value="small">小</option>
                     <option value="medium">中</option>
                     <option value="large">大</option>
@@ -978,7 +1000,7 @@ async function handleSubmit() {
                   <button 
                     type="button" 
                     class="copy-image-url-btn"
-                    @click="copyImageUrl(uploadedImageUrls[index])"
+                    @click="copyImageUrl(uploadedImageUrls[index], index)"
                     title="复制图片URL"
                   >
                     🔗
@@ -1132,12 +1154,12 @@ async function handleSubmit() {
         <div v-if="message" :class="['message', messageType]">
           {{ message }}
         </div>
-        
-        <div v-for="notification in copyNotifications" :key="notification.id" class="copy-notification">
-          <p>{{ notification.message }}</p>
-          <p class="url-preview">{{ notification.url }}</p>
-        </div>
       </form>
+      
+      <div v-for="notification in copyNotifications" :key="notification.id" class="copy-notification">
+        <p>{{ notification.message }}</p>
+        <p class="url-preview">{{ notification.url }}</p>
+      </div>
     </section>
   </div>
 </template>
@@ -1915,6 +1937,8 @@ async function handleSubmit() {
   animation: slideInRight 0.3s ease;
   z-index: 2000;
   min-width: 300px;
+  pointer-events: auto;
+  display: block;
 }
 
 .copy-notification p {
