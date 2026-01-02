@@ -6,6 +6,7 @@ import { supabase } from '../utils/supabase'
 const router = useRouter()
 
 const formData = ref({
+  nickname: '',
   password: '',
   confirmPassword: '',
   email: ''
@@ -20,6 +21,13 @@ async function handleRegister() {
   message.value = ''
 
   try {
+    if (!formData.value.nickname || formData.value.nickname.trim() === '') {
+      message.value = '昵称不能为空'
+      messageType.value = 'error'
+      loading.value = false
+      return
+    }
+
     if (formData.value.password !== formData.value.confirmPassword) {
       message.value = '两次输入的密码不一致'
       messageType.value = 'error'
@@ -28,27 +36,74 @@ async function handleRegister() {
     }
 
     console.log('⚙️ [注册系统] 正在创建新用户...')
+    console.log('📧 [注册系统] 邮箱:', formData.value.email)
+    console.log('👤 [注册系统] 昵称:', formData.value.nickname)
 
     const { data, error } = await supabase.auth.signUp({
       email: formData.value.email,
-      password: formData.value.password
+      password: formData.value.password,
+      options: {
+        data: {
+          display_name: formData.value.nickname
+        }
+      }
     })
+
+    console.log('⚙️ [注册系统] 响应数据:', data)
+    console.log('⚙️ [注册系统] 错误信息:', error)
 
     if (error) {
       console.log('☠️ [注册系统] 注册失败', error)
-      message.value = error.message || '注册失败'
+      console.log('☠️ [注册系统] 错误详情:', JSON.stringify(error, null, 2))
+      
+      let errorMessage = '注册失败'
+      
+      if (error.message.includes('User already registered') || error.message.includes('already been registered')) {
+        errorMessage = '该邮箱已被注册，请直接登录或使用其他邮箱'
+      } else if (error.message.includes('Invalid email')) {
+        errorMessage = '邮箱格式不正确'
+      } else if (error.message.includes('Password should be')) {
+        errorMessage = '密码长度至少需要6位'
+      } else {
+        errorMessage = error.message || '注册失败'
+      }
+      
+      message.value = errorMessage
       messageType.value = 'error'
-    } else {
+    } else if (data && data.user) {
       console.log('✨ [注册系统] 用户创建成功')
       console.log('取得用户ID:', data.user.id)
       console.log('取得用户Email:', data.user.email)
+      console.log('取得用户昵称:', formData.value.nickname)
+      console.log('用户邮箱确认状态:', data.user.email_confirmed_at)
+      console.log('用户创建时间:', data.user.created_at)
+      console.log('用户身份信息:', data.user.identities)
       
-      message.value = '注册成功！正在跳转到登录页面...'
-      messageType.value = 'success'
-      
-      setTimeout(() => {
-        router.push('/login')
-      }, 2000)
+      if (data.user.identities && data.user.identities.length === 0) {
+        console.log('⚠️ [注册系统] 该邮箱已注册')
+        message.value = '该邮箱已被注册，请直接登录或使用其他邮箱'
+        messageType.value = 'error'
+      } else {
+        if (data.session) {
+          message.value = '注册成功！正在跳转到登录页面...'
+          messageType.value = 'success'
+          
+          setTimeout(() => {
+            router.push('/login')
+          }, 2000)
+        } else {
+          message.value = '注册成功！请查收确认邮件后登录'
+          messageType.value = 'success'
+          
+          setTimeout(() => {
+            router.push('/login')
+          }, 3000)
+        }
+      }
+    } else {
+      console.log('⚠️ [注册系统] 注册未完成，可能邮箱已存在')
+      message.value = '该邮箱已被注册，请直接登录或使用其他邮箱'
+      messageType.value = 'error'
     }
   } catch (error) {
     console.error('☠️ [注册系统] 系统异常！', error)
@@ -82,6 +137,20 @@ async function handleRegister() {
 
     <section class="form-section">
       <form @submit.prevent="handleRegister" class="sacred-form">
+        <div class="form-group">
+          <label class="form-label">
+            <span class="label-icon">👤</span>
+            昵称
+          </label>
+          <input 
+            v-model="formData.nickname" 
+            type="text" 
+            class="form-input" 
+            placeholder="输入昵称..."
+            required
+          />
+        </div>
+
         <div class="form-group">
           <label class="form-label">
             <span class="label-icon">📧</span>

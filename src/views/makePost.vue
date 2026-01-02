@@ -592,7 +592,8 @@ async function handleCoverSelect(event) {
 async function removeCover() {
   if (coverPreview.value && isEditMode.value) {
     try {
-      const fileName = coverPreview.value.split('/').pop()
+      const coverUrl = typeof coverPreview.value === 'string' ? coverPreview.value : coverPreview.value.url
+      const fileName = coverUrl.split('/').pop()
       const { error } = await supabase.storage
         .from('post-images')
         .remove([fileName])

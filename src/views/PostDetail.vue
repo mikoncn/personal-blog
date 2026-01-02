@@ -66,7 +66,10 @@ async function handleDelete() {
     
     if (post.value.image_url) {
       if (post.value.image_url.cover) {
-        const fileName = post.value.image_url.cover.split('/').pop()
+        const coverUrl = typeof post.value.image_url.cover === 'string' 
+          ? post.value.image_url.cover 
+          : post.value.image_url.cover.url
+        const fileName = coverUrl.split('/').pop()
         filesToDelete.push(fileName)
         console.log('⚙️ [神圣机械日志] 准备删除封面图:', fileName)
       }

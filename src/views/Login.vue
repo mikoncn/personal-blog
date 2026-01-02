@@ -34,7 +34,22 @@ async function handleLogin() {
 
     if (error) {
       console.log('☠️ [登录系统] 身份验证失败，访问被拒绝', error)
-      message.value = error.message || '身份验证失败，访问被拒绝'
+      
+      let errorMessage = '身份验证失败，访问被拒绝'
+      
+      if (error.message.includes('Invalid login credentials')) {
+        errorMessage = '账号或密码错误，请检查后重试'
+      } else if (error.message.includes('Email not confirmed')) {
+        errorMessage = '邮箱尚未确认，请先查收确认邮件'
+      } else if (error.status === 400) {
+        errorMessage = '请求参数错误，请检查输入'
+      } else if (error.status === 422) {
+        errorMessage = '账号或密码格式不正确'
+      } else {
+        errorMessage = error.message || '身份验证失败，访问被拒绝'
+      }
+      
+      message.value = errorMessage
       messageType.value = 'error'
     } else {
       console.log('✨ [登录系统] 身份验证通过，访问权限已授予')
