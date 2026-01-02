@@ -239,6 +239,38 @@ export function useWeb3() {
     })
   }
 
+  async function signMessage(message) {
+    if (!hasWallet.value || !isConnected.value) {
+      error.value = '请先连接钱包'
+      return null
+    }
+
+    try {
+      console.log('⚙️ [Web3] 请求签名...', { message, account: account.value })
+
+      const signature = await window.ethereum.request({
+        method: 'personal_sign',
+        params: [
+          message,
+          account.value
+        ]
+      })
+
+      console.log('✅ [Web3] 签名成功', { signature })
+      return signature
+    } catch (err) {
+      console.error('☠️ [Web3] 签名失败', err)
+      
+      if (err.code === 4001) {
+        error.value = '用户拒绝了签名请求'
+      } else {
+        error.value = '签名失败：' + err.message
+      }
+      
+      return null
+    }
+  }
+
   async function sendTransaction(to, value) {
     if (!hasWallet.value || !isConnected.value) {
       error.value = '请先连接钱包'
@@ -286,6 +318,7 @@ export function useWeb3() {
     setupEventListeners,
     removeEventListeners,
     switchChain,
-    sendTransaction
+    sendTransaction,
+    signMessage
   }
 }

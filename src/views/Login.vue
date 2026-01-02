@@ -26,7 +26,8 @@ const {
   error: walletError,
   connectWallet,
   disconnectWallet,
-  formatAddress
+  formatAddress,
+  signMessage
 } = useWeb3()
 
 async function handleLogin() {
@@ -129,87 +130,31 @@ async function handleWalletLogin() {
 
     console.log('✅ [钱包登录] 钱包连接成功:', account.value)
 
-    console.log('⚙️ [钱包登录] 正在查找钱包地址对应的用户...')
-    const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('wallet_address', account.value.toLowerCase())
+    console.log('⚙️ [钱包登录] 正在请求签名...')
+    const SIGN_MESSAGE = 'Login to GeekBlog'
+    const signature = await signMessage(SIGN_MESSAGE)
 
-    console.log('⚙️ [钱包登录] 查询结果:', { profiles, profileError })
-
-    if (profileError) {
-      console.error('☠️ [钱包登录] 查询用户失败', profileError)
-      message.value = '数据库查询失败：' + profileError.message
+    if (!signature) {
+      console.error('☠️ [钱包登录] 签名失败')
+      message.value = walletError.value || '签名失败，请重试'
       messageType.value = 'error'
       disconnectWallet()
       return
     }
 
-    const profile = profiles && profiles.length > 0 ? profiles[0] : null
+    console.log('✅ [钱包登录] 签名成功:', signature)
 
-    if (!profile) {
-      console.log('⚙️ [钱包登录] 未找到绑定该钱包的用户，正在创建新用户...')
-      
-      const walletAddress = account.value.toLowerCase()
-      const tempEmail = `${walletAddress}@tempmail.com`
-      
-      console.log('⚙️ [钱包登录] 创建临时邮箱:', tempEmail)
-      
-      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
-        email: tempEmail,
-        password: walletAddress.slice(0, 32),
-        options: {
-          emailRedirectTo: window.location.origin
-        }
-      })
-
-      if (signUpError) {
-        console.error('☠️ [钱包登录] 创建用户失败', signUpError)
-        message.value = '创建用户失败，请重试'
-        messageType.value = 'error'
-        disconnectWallet()
-        return
-      }
-
-      console.log('✅ [钱包登录] 用户创建成功:', user.id)
-
-      const { error: profileInsertError } = await supabase
-        .from('profiles')
-        .insert({
-          id: user.id,
-          display_name: walletAddress,
-          wallet_address: walletAddress,
-          role: 'user'
-        })
-
-      if (profileInsertError) {
-        console.error('☠️ [钱包登录] 创建用户资料失败', profileInsertError)
-        message.value = '创建用户资料失败，请重试'
-        messageType.value = 'error'
-        disconnectWallet()
-        return
-      }
-
-      console.log('✨ [钱包登录] 新用户创建并登录成功')
-      console.log('取得用户ID:', user.id)
-      console.log('取得用户钱包地址:', walletAddress)
-
-      message.value = '钱包登录成功'
-      messageType.value = 'success'
-
-      setTimeout(() => {
-        router.push('/')
-      }, 1500)
-      return
-    }
-
-    console.log('✅ [钱包登录] 找到用户:', profile.id)
-
-    console.log('⚙️ [钱包登录] 正在使用钱包地址登录...')
-    
     const walletAddress = account.value.toLowerCase()
-    const tempEmail = `${walletAddress}@tempmail.com`
-    const tempPassword = walletAddress.slice(0, 32)
+    const tempEmail = `${walletAddress}@example.com`
+    
+    const signatureHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(signature))
+    const signatureHashArray = Array.from(new Uint8Array(signatureHash))
+    const signatureHashHex = signatureHashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    const tempPassword = signatureHashHex
+
+    console.log('⚙️ [钱包登录] 正在尝试登录...')
+    console.log('⚙️ [钱包登录] 虚拟邮箱:', tempEmail)
+    console.log('⚙️ [钱包登录] 签名哈希密码:', tempPassword.substring(0, 20) + '...')
 
     const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
       email: tempEmail,
@@ -217,11 +162,49 @@ async function handleWalletLogin() {
     })
 
     if (signInError) {
-      console.error('☠️ [钱包登录] 登录失败', signInError)
-      message.value = '登录失败：' + signInError.message
-      messageType.value = 'error'
-      disconnectWallet()
-      return
+      console.log('⚙️ [钱包登录] 登录失败，可能是新用户', signInError.message)
+      
+      if (signInError.message.includes('Invalid login credentials')) {
+        console.log('⚙️ [钱包登录] 检测到新用户，正在注册...')
+        
+        const { data: { user: newUser }, error: signUpError } = await supabase.auth.signUp({
+          email: tempEmail,
+          password: tempPassword,
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: {
+              wallet_address: walletAddress,
+              display_name: walletAddress
+            }
+          }
+        })
+
+        if (signUpError) {
+          console.error('☠️ [钱包登录] 注册失败', signUpError)
+          message.value = '注册失败：' + signUpError.message
+          messageType.value = 'error'
+          disconnectWallet()
+          return
+        }
+
+        console.log('✅ [钱包登录] 新用户注册成功:', newUser.id)
+        console.log('取得用户ID:', newUser.id)
+        console.log('取得用户钱包地址:', walletAddress)
+
+        message.value = '钱包登录成功'
+        messageType.value = 'success'
+
+        setTimeout(() => {
+          router.push('/')
+        }, 1500)
+        return
+      } else {
+        console.error('☠️ [钱包登录] 登录失败', signInError)
+        message.value = '登录失败：' + signInError.message
+        messageType.value = 'error'
+        disconnectWallet()
+        return
+      }
     }
 
     console.log('✨ [钱包登录] 钱包登录成功')
