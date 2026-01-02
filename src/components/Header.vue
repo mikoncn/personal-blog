@@ -1,7 +1,7 @@
 <template>
   <header class="header cyber-matrix">
     <div v-if="isLoggedIn" class="user-section-top-left">
-      <span class="user-info">{{ userEmail }}</span>
+      <span class="user-info">{{ userDisplayName }}</span>
       <button @click="handleLogout" class="cyber-btn logout-btn" data-text="退出">
         <span class="btn-inner">退出</span>
       </button>
@@ -22,11 +22,14 @@
         <router-link to="/posts" class="cyber-btn" data-text="文章">
           <span class="btn-inner">文章</span>
         </router-link>
-        <router-link v-if="isLoggedIn" to="/make-post" class="cyber-btn" data-text="发布">
+        <router-link v-if="isAdmin" to="/make-post" class="cyber-btn" data-text="发布">
           <span class="btn-inner">发布</span>
         </router-link>
         <router-link v-if="!isLoggedIn" to="/login" class="cyber-btn" data-text="登录">
           <span class="btn-inner">登录</span>
+        </router-link>
+        <router-link v-if="isLoggedIn" to="/profile" class="cyber-btn" data-text="我的">
+          <span class="btn-inner">我的</span>
         </router-link>
         <router-link to="/about" class="cyber-btn" data-text="关于">
           <span class="btn-inner">关于</span>
@@ -46,7 +49,8 @@ import { supabase } from '../utils/supabase'
 const router = useRouter()
 const currentUser = inject('currentUser')
 const isLoggedIn = ref(false)
-const userEmail = ref('')
+const userDisplayName = ref('')
+const isAdmin = ref(false)
 
 onMounted(async () => {
   await checkUser()
@@ -60,21 +64,41 @@ async function checkUser() {
   if (error) {
     console.error('☠️ [Header] 身份验证失败', error)
     isLoggedIn.value = false
-    userEmail.value = ''
+    userDisplayName.value = ''
+    isAdmin.value = false
     return
   }
   
   if (user) {
     console.log('✅ [Header] 身份验证通过', {
       id: user.id,
-      email: user.email
+      email: user.email,
+      metadata: user.user_metadata
     })
     isLoggedIn.value = true
-    userEmail.value = user.email
+    userDisplayName.value = user.user_metadata?.display_name || user.email
+    
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    
+    if (profileError) {
+      console.error('☠️ [Header] 查询profiles表失败', profileError)
+      isAdmin.value = false
+    } else if (profile && profile.role === 'admin') {
+      console.log('✅ [Header] 检测到管理员权限')
+      isAdmin.value = true
+    } else {
+      console.log('ℹ️ [Header] 非管理员用户')
+      isAdmin.value = false
+    }
   } else {
     console.log('🚪 [Header] 未检测到有效身份')
     isLoggedIn.value = false
-    userEmail.value = ''
+    userDisplayName.value = ''
+    isAdmin.value = false
   }
 }
 
@@ -83,7 +107,7 @@ async function handleLogout() {
   const { error } = await supabase.auth.signOut()
   if (!error) {
     isLoggedIn.value = false
-    userEmail.value = ''
+    userDisplayName.value = ''
     router.push('/')
   }
 }

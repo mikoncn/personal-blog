@@ -9,6 +9,7 @@ const route = useRoute()
 const currentUser = inject('currentUser')
 
 const isEditMode = computed(() => !!route.params.id)
+const isAdmin = ref(false)
 
 const formData = ref({
   title: '',
@@ -303,7 +304,41 @@ watch(selectedTags, () => {
   saveDraft()
 }, { deep: true })
 
-onMounted(() => {
+onMounted(async () => {
+  console.log('🔍 [makePost] 验证用户权限...')
+  
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  
+  if (userError || !user) {
+    console.error('☠️ [makePost] 未登录用户，拒绝访问')
+    alert('请先登录')
+    router.push('/login')
+    return
+  }
+  
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  
+  if (profileError) {
+    console.error('☠️ [makePost] 查询profiles表失败', profileError)
+    alert('权限验证失败')
+    router.push('/')
+    return
+  }
+  
+  if (!profile || profile.role !== 'admin') {
+    console.log('ℹ️ [makePost] 非管理员用户，拒绝访问')
+    alert('您没有权限访问此页面')
+    router.push('/')
+    return
+  }
+  
+  console.log('✅ [makePost] 管理员权限验证通过')
+  isAdmin.value = true
+  
   loadPostData()
   loadAllTags()
   if (!isEditMode.value) {

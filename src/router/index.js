@@ -7,6 +7,7 @@ import AllPosts from '../views/AllPosts.vue'
 import makePost from '../views/makePost.vue'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
+import Profile from '../views/Profile.vue'
 
 // 定义路由配置数组
 const routes = [
@@ -53,6 +54,12 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: Register
+  },
+  // 个人中心路由
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: Profile
   }
 ]
 

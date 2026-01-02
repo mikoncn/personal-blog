@@ -17,6 +17,7 @@ const loading = ref(true)
 const error = ref(null)
 const deleting = ref(false)
 const isLoggedIn = ref(false)
+const isAdmin = ref(false)
 
 const formattedContent = ref('')
 const markdownContentRef = ref(null)
@@ -125,6 +126,25 @@ onMounted(async () => {
   const { data: { user } } = await supabase.auth.getUser()
   isLoggedIn.value = !!user
   
+  if (user) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    
+    if (profileError) {
+      console.error('☠️ [PostDetail] 查询profiles表失败', profileError)
+      isAdmin.value = false
+    } else if (profile && profile.role === 'admin') {
+      console.log('✅ [PostDetail] 检测到管理员权限')
+      isAdmin.value = true
+    } else {
+      console.log('ℹ️ [PostDetail] 非管理员用户')
+      isAdmin.value = false
+    }
+  }
+  
   try {
     console.log('⚔️ [帝国防卫军日志] 开始检索圣典数据...')
     const foundPost = await getPostById(postId)
@@ -215,7 +235,7 @@ onUnmounted(() => {
             </svg>
             <span class="back-button-text">返回主页</span>
           </router-link>
-          <div v-if="isLoggedIn" class="right-buttons">
+          <div v-if="isAdmin" class="right-buttons">
             <button @click="handleDelete" class="delete-button" :disabled="deleting">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 6H5H21" stroke="#ff3333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
