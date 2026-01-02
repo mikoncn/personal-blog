@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { supabase } from '../utils/supabase'
+import WalletConnect from '../components/WalletConnect.vue'
 
 const formData = ref({
   display_name: '',
@@ -296,6 +297,18 @@ async function handleChangePassword() {
           </div>
         </form>
       </div>
+
+      <div class="profile-card">
+        <h2 class="section-title">
+          <span class="title-icon">🔗</span>
+          Web3 钱包
+        </h2>
+        
+        <div class="wallet-section">
+          <p class="wallet-description">连接您的 Web3 钱包以访问区块链功能</p>
+          <WalletConnect />
+        </div>
+      </div>
     </section>
 
     <div v-if="message" :class="['message', messageType]">
@@ -560,6 +573,21 @@ async function handleChangePassword() {
   overflow: hidden;
   text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
   transform: skewX(-3deg);
+}
+
+.wallet-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+.wallet-description {
+  color: #a0a0a0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
+  text-align: center;
+  margin-bottom: 10px;
 }
 
 .submit-btn::before {

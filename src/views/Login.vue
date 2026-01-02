@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../utils/supabase'
 import { cleanupTemporaryImages } from '../services/cleanupService'
+import { useWeb3 } from '../composables/useWeb3'
 
 const router = useRouter()
 
@@ -12,8 +13,21 @@ const formData = ref({
 })
 
 const loading = ref(false)
+const walletLoading = ref(false)
 const message = ref('')
 const messageType = ref('')
+
+const {
+  account,
+  isConnected,
+  walletName,
+  isConnecting,
+  hasWallet,
+  error: walletError,
+  connectWallet,
+  disconnectWallet,
+  formatAddress
+} = useWeb3()
 
 async function handleLogin() {
   loading.value = true
@@ -85,6 +99,149 @@ async function handleLogin() {
     loading.value = false
   }
 }
+
+async function handleWalletLogin() {
+  walletLoading.value = true
+  message.value = ''
+
+  try {
+    console.log('⚙️ [钱包登录] 正在连接钱包...')
+    console.log('⚙️ [钱包登录] 检测钱包插件:', walletName.value)
+    console.log('⚙️ [钱包登录] hasWallet:', hasWallet.value)
+    
+    if (!hasWallet.value) {
+      console.error('☠️ [钱包登录] 未检测到钱包插件')
+      message.value = '未检测到钱包插件，请安装 MetaMask 或 OKX Wallet'
+      messageType.value = 'error'
+      walletLoading.value = false
+      return
+    }
+    
+    const success = await connectWallet()
+
+    if (!success || !account.value) {
+      console.error('☠️ [钱包登录] 钱包连接失败')
+      console.error('☠️ [钱包登录] 错误信息:', walletError.value)
+      message.value = walletError.value || '钱包连接失败，请重试'
+      messageType.value = 'error'
+      return
+    }
+
+    console.log('✅ [钱包登录] 钱包连接成功:', account.value)
+
+    console.log('⚙️ [钱包登录] 正在查找钱包地址对应的用户...')
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('wallet_address', account.value.toLowerCase())
+
+    console.log('⚙️ [钱包登录] 查询结果:', { profiles, profileError })
+
+    if (profileError) {
+      console.error('☠️ [钱包登录] 查询用户失败', profileError)
+      message.value = '数据库查询失败：' + profileError.message
+      messageType.value = 'error'
+      disconnectWallet()
+      return
+    }
+
+    const profile = profiles && profiles.length > 0 ? profiles[0] : null
+
+    if (!profile) {
+      console.log('⚙️ [钱包登录] 未找到绑定该钱包的用户，正在创建新用户...')
+      
+      const walletAddress = account.value.toLowerCase()
+      const tempEmail = `${walletAddress}@tempmail.com`
+      
+      console.log('⚙️ [钱包登录] 创建临时邮箱:', tempEmail)
+      
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+        email: tempEmail,
+        password: walletAddress.slice(0, 32),
+        options: {
+          emailRedirectTo: window.location.origin
+        }
+      })
+
+      if (signUpError) {
+        console.error('☠️ [钱包登录] 创建用户失败', signUpError)
+        message.value = '创建用户失败，请重试'
+        messageType.value = 'error'
+        disconnectWallet()
+        return
+      }
+
+      console.log('✅ [钱包登录] 用户创建成功:', user.id)
+
+      const { error: profileInsertError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          display_name: walletAddress,
+          wallet_address: walletAddress,
+          role: 'user'
+        })
+
+      if (profileInsertError) {
+        console.error('☠️ [钱包登录] 创建用户资料失败', profileInsertError)
+        message.value = '创建用户资料失败，请重试'
+        messageType.value = 'error'
+        disconnectWallet()
+        return
+      }
+
+      console.log('✨ [钱包登录] 新用户创建并登录成功')
+      console.log('取得用户ID:', user.id)
+      console.log('取得用户钱包地址:', walletAddress)
+
+      message.value = '钱包登录成功'
+      messageType.value = 'success'
+
+      setTimeout(() => {
+        router.push('/')
+      }, 1500)
+      return
+    }
+
+    console.log('✅ [钱包登录] 找到用户:', profile.id)
+
+    console.log('⚙️ [钱包登录] 正在使用钱包地址登录...')
+    
+    const walletAddress = account.value.toLowerCase()
+    const tempEmail = `${walletAddress}@tempmail.com`
+    const tempPassword = walletAddress.slice(0, 32)
+
+    const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
+      email: tempEmail,
+      password: tempPassword
+    })
+
+    if (signInError) {
+      console.error('☠️ [钱包登录] 登录失败', signInError)
+      message.value = '登录失败：' + signInError.message
+      messageType.value = 'error'
+      disconnectWallet()
+      return
+    }
+
+    console.log('✨ [钱包登录] 钱包登录成功')
+    console.log('取得用户ID:', user.id)
+    console.log('取得用户Email:', user.email)
+
+    message.value = '钱包登录成功'
+    messageType.value = 'success'
+
+    setTimeout(() => {
+      router.push('/')
+    }, 1500)
+  } catch (error) {
+    console.error('☠️ [钱包登录] 系统异常！', error)
+    message.value = '系统异常：' + error.message
+    messageType.value = 'error'
+  } finally {
+    walletLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -150,6 +307,22 @@ async function handleLogin() {
 
         <div v-if="message" :class="['message', messageType]">
           {{ message }}
+        </div>
+
+        <div class="wallet-login-section">
+          <div class="divider">
+            <span class="divider-text">或使用</span>
+          </div>
+          
+          <button 
+            type="button"
+            class="wallet-login-btn"
+            @click="handleWalletLogin"
+            :disabled="walletLoading"
+          >
+            <span v-if="!walletLoading">🔗 钱包登录</span>
+            <span v-else>⚙️ 连接中...</span>
+          </button>
         </div>
 
         <div class="register-link">
@@ -467,6 +640,91 @@ async function handleLogin() {
 .link-text:hover {
   color: #00ff00;
   text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.wallet-login-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 1px solid rgba(0, 255, 0, 0.2);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.3), transparent);
+}
+
+.divider-text {
+  padding: 0 20px;
+  color: rgba(0, 255, 0, 0.5);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.wallet-login-btn {
+  width: 100%;
+  padding: 15px 30px;
+  background: rgba(0, 40, 0, 0.6);
+  border: 2px solid rgba(0, 255, 255, 0.5);
+  color: #00ffff;
+  font-family: 'Orbitron', 'Rajdhani', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+  transform: skewX(-3deg);
+}
+
+.wallet-login-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.wallet-login-btn:hover::before {
+  left: 100%;
+}
+
+.wallet-login-btn:hover {
+  background: rgba(0, 255, 255, 0.2);
+  border-color: #00ffff;
+  color: #00ffff;
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+  transform: skewX(-3deg) scale(1.02);
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+}
+
+.wallet-login-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wallet-login-btn:disabled:hover {
+  background: rgba(0, 40, 0, 0.6);
+  border-color: rgba(0, 255, 255, 0.5);
+  box-shadow: none;
+  transform: skewX(-3deg);
 }
 
 @media (max-width: 768px) {
