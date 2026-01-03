@@ -39,7 +39,7 @@ function hexToRgb(hex) {
 // 混沌图标位置
 const chaosIcons = ref([])
 
-// 【关键修改 1】：拆分网格宽高。高 16px 完美容纳 14px 字体，宽 10px 适合英文。
+// 网格尺寸配置：宽高独立以适配不同字符 (高16px容纳14px字体，宽10px适合英文)
 const cellWidth = ref(10)
 const cellHeight = ref(16)
 const fontSize = 14
@@ -87,7 +87,7 @@ function getCharCols(char, ctx) {
   return Math.ceil(width / cellWidth.value)
 }
 
-// 【关键修改 2】：动态计算整个单词需要的总宽度/高度
+// 检查能否在指定位置放置单词（动态计算单词所需空间）
 function canPlaceAt(startCol, startRow, direction, text, ctx) {
   let currentCol = startCol
   
@@ -120,7 +120,7 @@ function canPlaceAt(startCol, startRow, direction, text, ctx) {
   return true
 }
 
-// 【关键修改 3】：写入网格时，根据每个字符的真实宽度移动游标
+// 写入网格时，根据每个字符的真实宽度移动游标
 function markCellsAsOccupied(startCol, startRow, direction, text, cellData, ctx) {
   let currentCol = startCol
 
@@ -194,7 +194,7 @@ function initMatrix() {
     '警告', 'エラー', 'バグ', '修復', '起動', '停止', '完了', '解析'
   ]
 
-  // 【新增】半角片假名：Web3 黑客风的灵魂，专门用来填缝，致密且帅气
+  // 半角片假名：Web3 黑客风的灵魂，专门用来填缝，致密且帅气
   // 这些字符宽度只有普通日文的一半，完美适配你的 10px 网格
   const halfWidthKana = [
     'ｱ', 'ｲ', 'ｳ', 'ｴ', 'ｵ', 'ｶ', 'ｷ', 'ｸ', 'ｹ', 'ｺ', 'ｻ', 'ｼ', 'ｽ', 'ｾ', 'ｿ',
@@ -218,7 +218,7 @@ function initMatrix() {
 
   let wordIdCounter = 0
 
-  // 【关键修改】：先生成混沌图标位置，标记为占用，这样文字就不会覆盖图标
+  // 先生成混沌图标位置，标记为占用，这样文字就不会覆盖图标
   // 四个图标随机分布在Matrix中
   const iconNames = [
     { name: 'khorne', color: '#ff0000' },
@@ -315,7 +315,7 @@ function initMatrix() {
     return text[Math.floor(Math.random() * text.length)]
   }
 
-  // 【关键修改】：移除了瘦弱的标点，只用最硬核的字符填缝
+  // 移除了瘦弱的标点，只用最硬核的字符填缝
   const denseFillers = ['0', '1', 'Z', 'X', 'Y', 'E', 'F', 'L', 'T']
 
   // 遍历所有格子，尝试放置单词或字符
@@ -331,7 +331,7 @@ function initMatrix() {
         const char = getRandomChar()
         if (placeWord(char, 'horizontal', col, row)) continue
         
-        // 3. 【致密填充核心】：尝试半角片假名 (绝对能填满视觉，不留黑洞)
+        // 3. 致密填充核心：尝试半角片假名 (绝对能填满视觉，不留黑洞)
         let filled = false
         // 随机挑几个试，不用全试，提升性能
         for (let k = 0; k < 5; k++) {

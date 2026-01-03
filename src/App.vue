@@ -12,8 +12,6 @@ const currentUser = ref(null)
 let authSubscription = null
 
 onMounted(() => {
-  console.log('🔍 [App] 初始化认证状态监听器...')
-  
   authSubscription = supabase.auth.onAuthStateChange((event, session) => {
     console.log('🔄 [App] 认证状态变化:', event, session)
     

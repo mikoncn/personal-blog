@@ -1,7 +1,10 @@
 // 导入 Supabase 客户端
 import { supabase } from '../utils/supabase'
 
-// 获取所有文章
+/**
+ * 获取所有文章
+ * @returns {Promise<Array>} 文章列表
+ */
 export async function getAllPosts() {
   console.log('⚙️ [神圣机械日志] 发起神圣查询：检索所有圣典篇章...')
   console.log('🔗 [神圣机械日志] 机械神殿坐标:', import.meta.env.VITE_SUPABASE_URL)
@@ -10,10 +13,10 @@ export async function getAllPosts() {
       .from('posts')
       .select('*')
       .order('created_at', { ascending: false })
-    
+
     console.log('📜 [神圣机械日志] 查询结果 - 神圣数据:', data)
     console.log('⚠️ [神圣机械日志] 查询结果 - 异端错误:', error)
-    
+
     if (error) throw error
     console.log('✨ [神圣机械日志] 荣耀归于机械之神！成功检索', data?.length || 0, '篇圣典')
     console.log('📖 [神圣机械日志] 圣典目录:', data)
@@ -25,7 +28,11 @@ export async function getAllPosts() {
   }
 }
 
-// 根据ID获取单篇文章
+/**
+ * 根据ID获取单篇文章
+ * @param {string|number} id 文章ID
+ * @returns {Promise<Object|null>} 文章对象或null
+ */
 export async function getPostById(id) {
   console.log('⚙️ [神圣机械日志] 发起神圣查询：检索圣典篇章 ID:', id)
   try {
@@ -34,7 +41,7 @@ export async function getPostById(id) {
       .select('*')
       .eq('id', id)
       .single()
-    
+
     if (error) throw error
     console.log('✨ [神圣机械日志] 荣耀归于机械之神！成功检索圣典:', data?.title)
     return data
@@ -44,7 +51,11 @@ export async function getPostById(id) {
   }
 }
 
-// 根据分类获取文章
+/**
+ * 根据分类获取文章
+ * @param {string} category 分类名称
+ * @returns {Promise<Array>} 文章列表
+ */
 export async function getPostsByCategory(category) {
   console.log('⚙️ [神圣机械日志] 发起神圣查询：检索分类圣典:', category)
   try {
@@ -53,7 +64,7 @@ export async function getPostsByCategory(category) {
       .select('*')
       .eq('category', category)
       .order('created_at', { ascending: false })
-    
+
     if (error) throw error
     console.log('✨ [神圣机械日志] 荣耀归于机械之神！成功检索', data?.length || 0, '篇分类圣典')
     return data
@@ -63,7 +74,11 @@ export async function getPostsByCategory(category) {
   }
 }
 
-// 根据标签搜索文章
+/**
+ * 根据标签搜索文章
+ * @param {string} tag 标签名称
+ * @returns {Promise<Array>} 文章列表
+ */
 export async function searchPostsByTags(tag) {
   try {
     const { data, error } = await supabase
@@ -71,7 +86,7 @@ export async function searchPostsByTags(tag) {
       .select('*')
       .contains('tags', [tag])
       .order('created_at', { ascending: false })
-    
+
     if (error) throw error
     return data
   } catch (error) {
@@ -80,7 +95,11 @@ export async function searchPostsByTags(tag) {
   }
 }
 
-// 搜索文章（标题和内容）
+/**
+ * 搜索文章（标题和内容）
+ * @param {string} query 搜索关键词
+ * @returns {Promise<Array>} 文章列表
+ */
 export async function searchPosts(query) {
   console.log('⚙️ [神圣机械日志] 发起神圣查询：搜寻异端关键词:', query)
   try {
@@ -89,7 +108,7 @@ export async function searchPosts(query) {
       .select('*')
       .or(`title.ilike.%${query}%,content.ilike.%${query}%,summary.ilike.%${query}%`)
       .order('created_at', { ascending: false })
-    
+
     if (error) throw error
     console.log('✨ [神圣机械日志] 荣耀归于机械之神！搜寻完成，发现', data?.length || 0, '篇相关圣典')
     return data
@@ -99,7 +118,10 @@ export async function searchPosts(query) {
   }
 }
 
-// 获取所有分类
+/**
+ * 获取所有分类
+ * @returns {Promise<Array<string>>} 分类名称列表
+ */
 export async function getAllCategories() {
   console.log('⚙️ [神圣机械日志] 发起神圣查询：检索所有神圣分类...')
   try {
@@ -107,9 +129,9 @@ export async function getAllCategories() {
       .from('posts')
       .select('category')
       .order('category')
-    
+
     if (error) throw error
-    
+
     // 去重并返回分类列表
     const categories = [...new Set(data.map(post => post.category))]
     console.log('✨ [神圣机械日志] 荣耀归于机械之神！成功检索分类目录:', categories)
@@ -120,15 +142,18 @@ export async function getAllCategories() {
   }
 }
 
-// 获取所有标签
+/**
+ * 获取所有标签
+ * @returns {Promise<Array<string>>} 标签名称列表
+ */
 export async function getAllTags() {
   try {
     const { data, error } = await supabase
       .from('tag_usage_ranking')
       .select('name')
-    
+
     if (error) throw error
-    
+
     const tags = data.map(tag => tag.name)
     console.log('✨ [神圣机械日志] 荣耀归于机械之神！成功检索标签目录（按使用次数排序）:', tags)
     return tags
