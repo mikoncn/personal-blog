@@ -421,7 +421,9 @@ function draw() {
       if (!cell || !cell.isStart) continue
 
       const x = col * cellWidth.value
-      const y = row * cellHeight.value
+      // Fix: Add offset to vertically center text in the cell, matching the ChaosIcon logic
+      // (16 - 14) / 2 = 1px offset
+      const y = row * cellHeight.value + (cellHeight.value - fontSize) / 2
 
       // 计算距离屏幕中心的距离，用于边缘淡出效果
       const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2))
