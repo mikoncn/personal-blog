@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { supabase } from '../utils/supabase'
 import WalletConnect from '../components/WalletConnect.vue'
 
@@ -7,7 +7,9 @@ const formData = ref({
   display_name: '',
   currentPassword: '',
   newPassword: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  bindEmail: '',
+  bindPassword: ''
 })
 
 const loading = ref(false)
@@ -15,6 +17,11 @@ const message = ref('')
 const messageType = ref('')
 const currentUser = ref(null)
 const showPasswordForm = ref(false)
+const showBindForm = ref(false)
+
+const isWalletUser = computed(() => {
+  return currentUser.value?.email?.endsWith('@wallet.geekblog.io')
+})
 
 onMounted(async () => {
   await loadUserData()
@@ -31,7 +38,8 @@ async function loadUserData() {
       formData.value.display_name = user.user_metadata?.display_name || ''
       console.log('✨ [个人中心] 用户数据加载成功', {
         email: user.email,
-        display_name: user.user_metadata?.display_name
+        display_name: user.user_metadata?.display_name,
+        is_wallet: user.email?.endsWith('@wallet.geekblog.io')
       })
     }
   } catch (error) {
@@ -72,6 +80,64 @@ async function handleUpdateProfile() {
   } catch (error) {
     console.error('☠️ [个人中心] 更新失败', error)
     message.value = '更新失败：' + error.message
+    messageType.value = 'error'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleBindEmail() {
+  loading.value = true
+  message.value = ''
+
+  try {
+    if (!formData.value.bindEmail || !formData.value.bindEmail.includes('@')) {
+      message.value = '请输入有效的邮箱地址'
+      messageType.value = 'error'
+      loading.value = false
+      return
+    }
+
+    if (!formData.value.bindPassword || formData.value.bindPassword.length < 6) {
+      message.value = '密码长度至少需要6位'
+      messageType.value = 'error'
+      loading.value = false
+      return
+    }
+
+    console.log('⚙️ [个人中心] 正在绑定邮箱:', formData.value.bindEmail)
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('未授权的操作')
+
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bind-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({
+        new_email: formData.value.bindEmail,
+        new_password: formData.value.bindPassword
+      })
+    })
+
+    const result = await response.json()
+
+    if (!response.ok) {
+      throw new Error(result.error || '绑定失败')
+    }
+
+    console.log('✨ [个人中心] 邮箱绑定请求已发送')
+    message.value = '验证邮件已发送！请前往新邮箱点击确认链接，验证通过后即可使用新邮箱登录。'
+    messageType.value = 'success'
+    
+    // Do not auto logout. Let the user read the message.
+    // User can manually logout or wait.
+
+  } catch (error) {
+    console.error('☠️ [个人中心] 绑定失败', error)
+    message.value = '绑定失败：' + error.message
     messageType.value = 'error'
   } finally {
     loading.value = false
@@ -177,18 +243,63 @@ async function handleChangePassword() {
         </h2>
         
         <form @submit.prevent="handleUpdateProfile" class="sacred-form">
-          <div class="form-group">
+          <!-- Email Field with Bind Option -->
+          <div class="form-group email-group">
             <label class="form-label">
               <span class="label-icon">📧</span>
               邮箱
             </label>
-            <input 
-              :value="currentUser?.email || ''"
-              type="email" 
-              class="form-input" 
-              disabled
-            />
-            <span class="input-hint">邮箱不可修改</span>
+            <div class="email-input-wrapper">
+              <input 
+                :value="isWalletUser ? '未绑定邮箱' : (currentUser?.email || '')"
+                type="text" 
+                class="form-input" 
+                disabled
+              />
+              <button 
+                v-if="isWalletUser"
+                type="button"
+                @click="showBindForm = !showBindForm"
+                class="bind-btn"
+              >
+                {{ showBindForm ? '取消' : '绑定' }}
+              </button>
+            </div>
+            <span v-if="!isWalletUser" class="input-hint">邮箱不可修改</span>
+            <span v-else class="input-hint wallet-hint">当前为 Web3 钱包登录，建议绑定邮箱以便使用密码登录。</span>
+          </div>
+
+          <!-- Bind Email Form (Collapsible) -->
+          <div v-if="showBindForm && isWalletUser" class="bind-email-form">
+            <div class="form-group">
+              <label class="form-label">新邮箱地址</label>
+              <input 
+                v-model="formData.bindEmail" 
+                type="email" 
+                class="form-input" 
+                placeholder="输入您的常用邮箱..."
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">设置登录密码</label>
+              <input 
+                v-model="formData.bindPassword" 
+                type="password" 
+                class="form-input" 
+                placeholder="设置该账号的登录密码..."
+              />
+            </div>
+            <div class="form-actions bind-actions">
+              <button 
+                type="button" 
+                @click="handleBindEmail" 
+                class="submit-btn"
+                :disabled="loading"
+              >
+                <span v-if="!loading">🔗 确认绑定</span>
+                <span v-else>⚙️ 处理中...</span>
+              </button>
+            </div>
           </div>
 
           <div class="form-group">
@@ -548,6 +659,49 @@ async function handleChangePassword() {
   color: rgba(0, 255, 0, 0.5);
   margin-top: 5px;
   font-family: 'Rajdhani', sans-serif;
+}
+
+.wallet-hint {
+  color: #ff9900;
+  text-shadow: 0 0 5px rgba(255, 153, 0, 0.3);
+}
+
+.email-input-wrapper {
+  display: flex;
+  gap: 15px;
+}
+
+.bind-btn {
+  padding: 0 25px;
+  background: transparent;
+  border: 1px solid #ff9900;
+  color: #ff9900;
+  font-family: 'Orbitron', sans-serif;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+}
+
+.bind-btn:hover {
+  background: #ff9900;
+  color: #000;
+  box-shadow: 0 0 15px rgba(255, 153, 0, 0.5);
+}
+
+.bind-email-form {
+  margin-bottom: 30px;
+  padding: 20px;
+  background: rgba(255, 153, 0, 0.1);
+  border: 1px solid rgba(255, 153, 0, 0.3);
+  border-radius: 6px;
+  animation: slideIn 0.3s ease;
+}
+
+.bind-actions {
+  margin-top: 15px;
 }
 
 .form-actions {

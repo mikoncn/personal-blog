@@ -107,22 +107,16 @@ async function handleWalletLogin() {
 
   try {
     console.log('⚙️ [钱包登录] 正在连接钱包...')
-    console.log('⚙️ [钱包登录] 检测钱包插件:', walletName.value)
-    console.log('⚙️ [钱包登录] hasWallet:', hasWallet.value)
     
     if (!hasWallet.value) {
-      console.error('☠️ [钱包登录] 未检测到钱包插件')
       message.value = '未检测到钱包插件，请安装 MetaMask 或 OKX Wallet'
       messageType.value = 'error'
-      walletLoading.value = false
       return
     }
     
     const success = await connectWallet()
 
     if (!success || !account.value) {
-      console.error('☠️ [钱包登录] 钱包连接失败')
-      console.error('☠️ [钱包登录] 错误信息:', walletError.value)
       message.value = walletError.value || '钱包连接失败，请重试'
       messageType.value = 'error'
       return
@@ -135,92 +129,56 @@ async function handleWalletLogin() {
     const signature = await signMessage(SIGN_MESSAGE)
 
     if (!signature) {
-      console.error('☠️ [钱包登录] 签名失败')
       message.value = walletError.value || '签名失败，请重试'
       messageType.value = 'error'
       disconnectWallet()
       return
     }
 
-    console.log('✅ [钱包登录] 签名成功:', signature)
+    console.log('✅ [钱包登录] 签名成功，正在请求服务端验证...')
 
-    const walletAddress = account.value.toLowerCase()
-    const tempEmail = `${walletAddress}@example.com`
-    
-    const signatureHash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(signature))
-    const signatureHashArray = Array.from(new Uint8Array(signatureHash))
-    const signatureHashHex = signatureHashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-    const tempPassword = signatureHashHex
-
-    console.log('⚙️ [钱包登录] 正在尝试登录...')
-    console.log('⚙️ [钱包登录] 虚拟邮箱:', tempEmail)
-    console.log('⚙️ [钱包登录] 签名哈希密码:', tempPassword.substring(0, 20) + '...')
-
-    const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
-      email: tempEmail,
-      password: tempPassword
+    // 调用 Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('wallet-login', {
+      body: {
+        address: account.value,
+        signature: signature,
+        message: SIGN_MESSAGE
+      }
     })
 
-    if (signInError) {
-      console.log('⚙️ [钱包登录] 登录失败，可能是新用户', signInError.message)
-      
-      if (signInError.message.includes('Invalid login credentials')) {
-        console.log('⚙️ [钱包登录] 检测到新用户，正在注册...')
-        
-        const { data: { user: newUser }, error: signUpError } = await supabase.auth.signUp({
-          email: tempEmail,
-          password: tempPassword,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: {
-              wallet_address: walletAddress,
-              display_name: walletAddress
-            }
-          }
-        })
-
-        if (signUpError) {
-          console.error('☠️ [钱包登录] 注册失败', signUpError)
-          message.value = '注册失败：' + signUpError.message
-          messageType.value = 'error'
-          disconnectWallet()
-          return
-        }
-
-        console.log('✅ [钱包登录] 新用户注册成功:', newUser.id)
-        console.log('取得用户ID:', newUser.id)
-        console.log('取得用户钱包地址:', walletAddress)
-
-        message.value = '钱包登录成功'
-        messageType.value = 'success'
-
-        setTimeout(() => {
-          router.push('/')
-        }, 1500)
-        return
-      } else {
-        console.error('☠️ [钱包登录] 登录失败', signInError)
-        message.value = '登录失败：' + signInError.message
-        messageType.value = 'error'
-        disconnectWallet()
-        return
-      }
+    if (error) {
+      console.error('☠️ [钱包登录] 服务端验证失败', error)
+      throw error
     }
 
-    console.log('✨ [钱包登录] 钱包登录成功')
-    console.log('取得用户ID:', user.id)
-    console.log('取得用户Email:', user.email)
+    if (data.error) {
+      console.error('☠️ [钱包登录] 业务逻辑错误', data.error)
+      throw new Error(data.error)
+    }
 
+    console.log('✨ [钱包登录] 验证成功，收到 Session:', data)
+
+    // 手动设置 Session
+    const { error: sessionError } = await supabase.auth.setSession(data.session)
+    
+    if (sessionError) {
+      console.error('☠️ [钱包登录] Session 设置失败', sessionError)
+      throw sessionError
+    }
+
+    console.log('✅ [钱包登录] 登录成功！')
     message.value = '钱包登录成功'
     messageType.value = 'success'
 
     setTimeout(() => {
       router.push('/')
     }, 1500)
+
   } catch (error) {
     console.error('☠️ [钱包登录] 系统异常！', error)
-    message.value = '系统异常：' + error.message
+    message.value = '登录失败：' + (error.message || '未知错误')
     messageType.value = 'error'
+    disconnectWallet()
   } finally {
     walletLoading.value = false
   }
