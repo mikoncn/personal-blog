@@ -243,10 +243,20 @@ function initMatrix() {
       const iconWidthCells = Math.ceil(fontSize / cellWidth.value)
       const iconHeightCells = Math.ceil(fontSize / cellHeight.value)
       
+      // 用户反馈空白太多，移除多余 padding，保持紧凑
+      const paddingX = 0
+      const paddingY = 0
+
+      const iconOccupyRowStart = Math.max(0, randomRow - paddingY)
+      const iconOccupyRowEnd = Math.min(rows, randomRow + iconHeightCells + paddingY)
+      const iconOccupyColStart = Math.max(0, randomCol - paddingX)
+      const iconOccupyColEnd = Math.min(cols, randomCol + iconWidthCells + paddingX)
+      
       let canPlace = true
-      for (let r = 0; r < iconHeightCells && (randomRow + r) < rows; r++) {
-        for (let c = 0; c < iconWidthCells && (randomCol + c) < cols; c++) {
-          if (screenGridMap[randomRow + r][randomCol + c]) {
+      // 检查放置位置（包含 padding 区域）是否被占用
+      for (let r = iconOccupyRowStart; r < iconOccupyRowEnd; r++) {
+        for (let c = iconOccupyColStart; c < iconOccupyColEnd; c++) {
+          if (screenGridMap[r][c]) {
             canPlace = false
             break
           }
@@ -255,9 +265,10 @@ function initMatrix() {
       }
       
       if (canPlace) {
-        for (let r = 0; r < iconHeightCells && (randomRow + r) < rows; r++) {
-          for (let c = 0; c < iconWidthCells && (randomCol + c) < cols; c++) {
-            screenGridMap[randomRow + r][randomCol + c] = true
+        // 标记区域为占用
+        for (let r = iconOccupyRowStart; r < iconOccupyRowEnd; r++) {
+          for (let c = iconOccupyColStart; c < iconOccupyColEnd; c++) {
+            screenGridMap[r][c] = true
           }
         }
         

@@ -7,6 +7,7 @@ import { formatDate } from '../utils/dateFormatter'
 import { renderMarkdown } from '../utils/markdown'
 import Header from '../components/Header.vue'
 import Footer from '../components/Footer.vue'
+import CommentSection from '../components/CommentSection.vue'
 
 const router = useRouter()
 const props = defineProps(['id'])
@@ -277,6 +278,9 @@ onUnmounted(() => {
         
         <!-- 文章正文内容（HTML格式） -->
         <div ref="markdownContentRef" class="post-body markdown-content" v-html="formattedContent"></div>
+
+        <!-- 评论区 -->
+        <CommentSection :postId="post.id" />
       </div>
       
       <!-- 文章未找到状态 -->

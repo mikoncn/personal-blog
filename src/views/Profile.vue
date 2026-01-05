@@ -72,6 +72,15 @@ async function handleUpdateProfile() {
 
     if (error) throw error
 
+
+    // Sync to public profiles table - HANDLED BY DB TRIGGER
+    // const { error: profileError } = await supabase
+    //   .from('profiles')
+    //   .upsert({...})
+
+
+    if (error) throw error
+
     console.log('✨ [个人中心] 用户信息更新成功')
     message.value = '个人信息更新成功！'
     messageType.value = 'success'
@@ -236,6 +245,10 @@ async function handleChangePassword() {
     </section>
 
     <section class="profile-sections">
+      <div v-if="message" :class="['message', messageType]">
+        {{ message }}
+      </div>
+
       <div class="profile-card">
         <h2 class="section-title">
           <span class="title-icon">👤</span>
@@ -422,9 +435,6 @@ async function handleChangePassword() {
       </div>
     </section>
 
-    <div v-if="message" :class="['message', messageType]">
-      {{ message }}
-    </div>
   </div>
 </template>
 
@@ -873,7 +883,7 @@ async function handleChangePassword() {
 }
 
 .message {
-  margin-top: 40px;
+  margin-bottom: 30px;
   padding: 15px 20px;
   border-radius: 5px;
   font-family: 'Rajdhani', sans-serif;
