@@ -157,19 +157,21 @@ async function fetchComments() {
 
 // 设置回复目标
 function handleReply(comment) {
+  // 检查用户是否已登录，未登录则跳转登录页
   if (!currentUser.value) {
     router.push('/login')
     return
   }
   
-  // Reply to the specific comment
+  // 设置回复的目标信息：ID、用户名和父评论ID
+  // 这里的 parentId 指向该评论本身，作为新评论的 parent_id
   replyTarget.value = {
     id: comment.id,
     username: comment.profiles?.display_name || '匿名',
     parentId: comment.id 
   }
   
-  // 滚动到输入框
+  // 滚动页面到评论输入框位置，以便用户直接输入
   const form = document.querySelector('.comment-form')
   if (form) form.scrollIntoView({ behavior: 'smooth' })
 }
@@ -181,7 +183,9 @@ function cancelReply() {
 
 // 提交评论
 async function handleSubmit() {
+  // 校验内容是否为空
   if (!newComment.value.trim()) return
+  // 再次校验登录状态
   if (!currentUser.value) {
     router.push('/login')
     return
@@ -191,12 +195,14 @@ async function handleSubmit() {
     submitting.value = true
     error.value = null
 
+    // 构建提交给后端的载荷
     const payload = {
       post_id: props.postId,
       user_id: currentUser.value.id,
       content: newComment.value.trim()
     }
     
+    // 如果是回复现有评论，添加 parent_id 字段
     if (replyTarget.value) {
       payload.parent_id = replyTarget.value.parentId
     }
@@ -480,9 +486,9 @@ onMounted(() => {
   gap: 20px; /* Gap between root threads */
 }
 
-.thread-group {
+/* .thread-group { */
   /* Container for a full conversation tree */
-}
+/* } */
 
 .comment-row {
   display: flex;
@@ -493,9 +499,9 @@ onMounted(() => {
   margin-bottom: 10px;
 }
 
-.child-row {
+/* .child-row { */
   /* No margin bottom for children to keep lines connected */
-}
+/* } */
 
 .thread-lines {
   display: flex;

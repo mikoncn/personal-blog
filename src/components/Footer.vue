@@ -1,11 +1,77 @@
+<script setup>
+import { ref } from 'vue'
+import ChaosIcon from './ChaosIcon.vue'
+import { socialConfig } from '../data/config'
+
+const showModal = ref(false)
+const copySuccess = ref(false)
+
+async function copyEmail() {
+  if (!socialConfig.email) return
+  
+  try {
+    await navigator.clipboard.writeText(socialConfig.email)
+    copySuccess.value = true
+    setTimeout(() => {
+      showModal.value = false
+      setTimeout(() => {
+        copySuccess.value = false
+      }, 300)
+    }, 800)
+  } catch (err) {
+    console.error('复制失败:', err)
+  }
+}
+
+function handleEmailClick() {
+  if (socialConfig.email) {
+    showModal.value = true
+  }
+}
+</script>
+
 <template>
   <footer class="footer">
     <p>© 2026 MIKON BLOG. All rights reserved.</p>
     <div class="social-links">
-      <a href="https://github.com/mikoncn" target="_blank" rel="noopener noreferrer" class="social-link">GitHub</a>
-      <a href="#" class="social-link">Twitter</a>
-      <a href="#" class="social-link">LinkedIn</a>
-      <a href="#" @click.prevent="showModal = true" class="social-link">Email</a>
+      <a 
+        :href="socialConfig.github || 'javascript:void(0)'" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        class="social-link"
+        :class="{ 'disabled': !socialConfig.github }"
+        @click="!socialConfig.github && $event.preventDefault()"
+      >
+        GitHub
+      </a>
+      <a 
+        :href="socialConfig.twitter || 'javascript:void(0)'" 
+        target="_blank"
+        rel="noopener noreferrer"
+        class="social-link"
+        :class="{ 'disabled': !socialConfig.twitter }"
+        @click="!socialConfig.twitter && $event.preventDefault()"
+      >
+        Twitter
+      </a>
+      <a 
+        :href="socialConfig.linkedin || 'javascript:void(0)'" 
+        target="_blank"
+        rel="noopener noreferrer"
+        class="social-link"
+        :class="{ 'disabled': !socialConfig.linkedin }"
+        @click="!socialConfig.linkedin && $event.preventDefault()"
+      >
+        LinkedIn
+      </a>
+      <a 
+        href="#" 
+        @click.prevent="handleEmailClick" 
+        class="social-link"
+        :class="{ 'disabled': !socialConfig.email }"
+      >
+        Email
+      </a>
     </div>
 
     <transition name="modal-fade">
@@ -29,7 +95,7 @@
 
             <div class="email-display">
               <span class="email-label">COGNITATOR ADDRESS:</span>
-              <span class="email-address">mikoncn@outlook.com</span>
+              <span class="email-address">{{ socialConfig.email }}</span>
             </div>
           </div>
 
@@ -47,29 +113,6 @@
     </transition>
   </footer>
 </template>
-
-<script setup>
-import { ref } from 'vue'
-import ChaosIcon from './ChaosIcon.vue'
-
-const showModal = ref(false)
-const copySuccess = ref(false)
-
-async function copyEmail() {
-  try {
-    await navigator.clipboard.writeText('mikoncn@outlook.com')
-    copySuccess.value = true
-    setTimeout(() => {
-      showModal.value = false
-      setTimeout(() => {
-        copySuccess.value = false
-      }, 300)
-    }, 800)
-  } catch (err) {
-    console.error('复制失败:', err)
-  }
-}
-</script>
 
 <style scoped>
 .footer {

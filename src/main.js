@@ -3,6 +3,22 @@ import './style.css'
 import './assets/markdown.css'
 import App from './App.vue'
 import router from './router'
+import { siteConfig } from './data/config'
+
+// Apply Site Config
+if (siteConfig.title) {
+  document.title = siteConfig.title
+}
+
+if (siteConfig.favicon) {
+  let link = document.querySelector("link[rel~='icon']")
+  if (!link) {
+    link = document.createElement('link')
+    link.rel = 'icon'
+    document.head.appendChild(link)
+  }
+  link.href = siteConfig.favicon
+}
 
 window.copyCode = async function(button) {
   const codeBlock = button.parentElement.querySelector('code')

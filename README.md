@@ -4,7 +4,7 @@ GeekBlog 是一个视觉风格独特的全栈博客应用，采用了经典的 *
 
 ## 🚀 项目亮点
 
-- **沉浸式视觉体验**: 
+- **沉浸式视觉体验**:
   - 集成 `HTML5 Canvas` 实现黑客帝国风格的数字雨背景。
   - 使用 CSS 伪元素模拟老式 CRT 显示器的扫描线效果。
 - **现代化技术栈**: 基于 Vue 3 (Composition API) 和 Vite 构建，享受极致的开发体验。
@@ -14,12 +14,14 @@ GeekBlog 是一个视觉风格独特的全栈博客应用，采用了经典的 *
 ## 🛠️ 技术栈架构
 
 ### 前端 (Frontend)
+
 - **核心框架**: [Vue 3](src/main.js)
 - **构建工具**: [Vite](vite.config.js)
 - **路由管理**: Vue Router 4 (SPA 单页应用)
 - **样式方案**: 原生 CSS + CSS3 Animations
 
 ### 后端 (Backend / BaaS)
+
 - **Core**: Supabase
 - **Database**: PostgreSQL
 - **Auth**: Supabase Auth (支持邮箱、第三方登录)
@@ -29,46 +31,96 @@ GeekBlog 是一个视觉风格独特的全栈博客应用，采用了经典的 *
 通过对源码的静态分析，本项目采用了以下设计模式：
 
 ### 1. 业务逻辑分层 (Service Pattern)
+
 项目避免了在 Vue 组件中直接调用 Supabase API，而是将数据交互封装在独立的 Service 层中。
-*   **代码位置**: `src/services/` (如 `postService.js`)
-*   **优势**: 提高代码可复用性和可维护性，视图层专注于展示。
+
+- **代码位置**: `src/services/` (如 `postService.js`)
+- **优势**: 提高代码可复用性和可维护性，视图层专注于展示。
 
 ### 2. 全局状态管理 (State Management)
-*   **实现方式**: 利用 Vue 3 的 `provide / inject` 机制。
-*   **逻辑入口**: `src/App.vue`
-*   **流程**: `App.vue` 在挂载时监听 Supabase 认证状态，将 `currentUser` 下发给所有子组件，实现了轻量级的全局用户状态管理，避免了引入重型状态库 (Pinia/Vuex)。
+
+- **实现方式**: 利用 Vue 3 的 `provide / inject` 机制。
+- **逻辑入口**: `src/App.vue`
+- **流程**: `App.vue` 在挂载时监听 Supabase 认证状态，将 `currentUser` 下发给所有子组件，实现了轻量级的全局用户状态管理，避免了引入重型状态库 (Pinia/Vuex)。
 
 ### 3. 路由结构
+
 路由配置位于 `src/router/index.js`，主要包含：
-*   `/`: 首页 (展示文章列表)
-*   `/post/:id`: 文章详情 (支持 Markdown 渲染)
-*   `/make-post`: 内容创作 (CMS 功能)
-*   `/login` & `/register`: 用户认证体系
+
+- `/`: 首页 (展示文章列表)
+- `/post/:id`: 文章详情 (支持 Markdown 渲染)
+- `/make-post`: 内容创作 (CMS 功能)
+- `/login` & `/register`: 用户认证体系
 
 ## 🏁 快速开始 (Getting Started)
 
 ### 1. 环境准备
+
 确保您的环境已安装：
+
 - Node.js (推荐 LTS 版本)
 - Git
 
 ### 2. 安装依赖
+
 ```bash
 npm install
 ```
 
 ### 3. 本地开发
+
 ```bash
 npm run dev
 ```
+
 启动后访问 `http://localhost:3000` 即可预览。
 
 ### 4. 环境变量配置
+
 请确保根目录下 `.env` 文件已配置正确的 Supabase 凭证：
+
 ```env
 VITE_SUPABASE_URL=your_project_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
 ## 📄 许可证
+
 MIT License
+
+## 🔗 Web3 钱包登录与邮箱绑定部署
+
+本项目包含两个关键的 Edge Functions (`wallet-login` 和 `bind-email`) 用于处理 Web3 登录逻辑。
+
+### 1. 数据库配置 (SQL RPC)
+
+为了防止安全漏洞，必须在 Supabase 数据库中创建 `unverify_user` 函数。
+在 SQL Editor 中执行：
+
+```sql
+CREATE OR REPLACE FUNCTION unverify_user(user_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE auth.users SET email_confirmed_at = NULL WHERE id = user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+### 2. 部署 Edge Functions
+
+使用 Supabase CLI 部署以下函数：
+
+```bash
+npx supabase functions deploy wallet-login
+npx supabase functions deploy bind-email
+```
+
+### 3. 配置 JWT Secret
+
+为了正确签发 Token，必须设置 `JWT_SECRET` 环境变量（在 Dashboard 或通过 CLI）：
+
+```bash
+npx supabase secrets set JWT_SECRET=<your_project_jwt_secret>
+```
+
+_提示：可在 Project Settings -> API -> JWT Settings 中找到 Secret。_
