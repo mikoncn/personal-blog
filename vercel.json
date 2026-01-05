@@ -1,0 +1,13 @@
+{
+  "rewrites": [
+    {
+      "source": "/supa-proxy/:match*",
+      // 代理 Supabase API
+      "destination": "https://twjantrzbprehxcmlszj.supabase.co/:match*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
