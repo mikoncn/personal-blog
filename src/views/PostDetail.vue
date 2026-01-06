@@ -380,6 +380,24 @@ onUnmounted(() => {
   margin-bottom: 30px;
 }
 
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+
+  .right-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .back-button, .delete-button, .edit-button {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
 /* 右侧按钮容器：删除和修改按钮 */
 .right-buttons {
   display: flex;

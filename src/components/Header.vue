@@ -321,6 +321,22 @@ async function handleLogout() {
   gap: 15px;
 }
 
+@media (max-width: 768px) {
+  .user-section-top-left {
+    position: relative;
+    top: 0;
+    right: 0;
+    margin-bottom: 20px;
+    justify-content: center;
+    width: 100%;
+  }
+  
+  /* Ensure header content flows correctly */
+  .header-content {
+    padding-top: 10px;
+  }
+}
+
 .user-info {
   font-family: 'Orbitron', sans-serif;
   font-weight: 600;
@@ -357,5 +373,10 @@ async function handleLogout() {
   .cyber-btn { padding: 8px 16px; font-size: 0.9rem; }
   .user-info { font-size: 0.7rem; }
   .logout-btn { padding: 6px 15px; font-size: 0.8rem; }
+  
+  /* Optimize Grid/Nav for mobile */
+  .cyber-nav {
+    gap: 10px;
+  }
 }
 </style>

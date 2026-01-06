@@ -1279,4 +1279,57 @@ onMounted(async () => {
   text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000;
   text-align: center;
 }
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .category-filter {
+    position: static;
+    width: 100%;
+    margin-top: 15px;
+  }
+
+  .category-select {
+    width: 100%;
+    display: block;
+  }
+
+  .tag-filter {
+    max-width: 100%;
+    justify-content: flex-start; /* Align left for natural reading */
+    flex-wrap: wrap; /* Allow buttons to wrap to next line */
+    overflow-x: visible; /* Remove horizontal scroll */
+    white-space: normal;
+    padding-bottom: 0;
+    gap: 10px; /* Comfortable gap */
+  }
+  
+  .tag-filter::-webkit-scrollbar {
+    display: none; 
+  }
+  
+  .tag-filter-btn {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    flex: 1 0 auto; /* Allow grow to fill gaps slightly */
+    min-width: 60px; /* Ensure small tags aren't too small */
+    display: inline-flex;
+    white-space: nowrap;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 8px; /* Increase vertical spacing */
+    height: 36px; /* Enforce consistent height */
+  }
+
+  .search-box {
+    margin-bottom: 15px;
+  }
+
+  .search-btn {
+    padding: 15px 20px;
+  }
+}
 </style>

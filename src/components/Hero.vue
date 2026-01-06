@@ -1,8 +1,8 @@
 <template>
   <section class="hero">
-    <h2 class="hero-title">欢迎来到未来</h2>
-    <p class="hero-subtitle">探索技术与艺术的边界</p>
-    <button class="cta-button">开始探索</button>
+    <h2 class="hero-title">Welcome to MikonDAO</h2>
+    <p class="hero-subtitle">Governance by one, for the vibe</p>
+    <button class="cta-button">开启远征</button>
   </section>
 </template>
 
@@ -38,7 +38,7 @@
   font-weight: 700;
   letter-spacing: 3px;
   font-family: 'Orbitron', 'Rajdhani', sans-serif;
-  text-transform: uppercase;
+  /* text-transform: uppercase; Removed to allow mixed case */
   position: relative;
   display: inline-block;
   transform: skewX(-3deg);
